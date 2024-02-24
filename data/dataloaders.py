@@ -15,6 +15,13 @@ dataset_dict = {
             'train': Dataset_IMP_encoded,
             'test': Dataset_IMP_encoded
         }
+    },
+    'forecast': {
+        'encoded': {
+            'pred': Dataset_IMP_Pred_encoded,
+            'train': Dataset_IMP_encoded,
+            'test': Dataset_IMP_encoded
+        }
     }
 }
 
@@ -31,15 +38,17 @@ def get_loader(config,
     drop_last = True if flag == 'train' else False
     shuffle = True if flag == 'train' else False
     batch_size = 1 if flag == 'pred' else config.train.batch_size
-
+    # batch_size = config.train.batch_size
     data_kwargs = {
         'root_path': root_path,
         'flag': flag,
         'size': size,
         'timeenc': timeenc,
-        'freq': 'h'
+        'freq': 'h', 
+        'scale': config.data.scale,
+        'embedding': config.data.embedding
     }
-    if task_name == 'imputation' and flag == 'pred':
+    if (task_name == 'imputation' or task_name == 'forecast') and flag == 'pred':
         data_kwargs['subject'] = subject_list[0]
         data_kwargs['act'] = config.data.test_act
     else:

@@ -3,19 +3,19 @@ data:
   root_path: ../data
   train_subjects: [1, 2, 3, 4]
   test_subjects: [5]
-  test_act: Stroop
+  test_act: Hand grip
   scale: False
-  embedding: None
+  embedding: fourier
 
 model: 
   name: Transformer
   task_name: forecast
-  seq_len: 64
-  pred_len: 64
+  seq_len: 96
+  pred_len: 96
   label_len: 4
   embed_type: 0
   top_k: 5
-  enc_in: 45
+  enc_in: 80
   dec_in: 1
   c_out: 1
   d_model: 512
@@ -32,7 +32,7 @@ model:
 
 train:
   epochs: 10
-  batch_size: 32
+  batch_size: 64
   patience: 10
   lr: 0.001
   lradj: type1
@@ -41,6 +41,6 @@ train:
 
 log:
   project: fatigue
-  group: imputation-learned
-  tag: train4test1-filtered
+  group: imputation-learned-fourier
+  tag: train4test1-filtered-fourier
 

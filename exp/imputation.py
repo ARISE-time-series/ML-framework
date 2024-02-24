@@ -59,16 +59,11 @@ class Exp_Imputation(Exp_Basic):
 
                 batch_x_mark = batch_x_mark.float().to(self.device)
                 batch_y_mark = batch_y_mark.float().to(self.device)
-
                 # decoder input
                 dec_inp = torch.zeros_like(target[:, -self.config.model.pred_len:, :]).float()
                 dec_inp = torch.cat([target[:, :self.config.model.label_len, :], dec_inp], dim=1).float().to(self.device)
-                # encoder - decoder
 
-                if self.config.model.output_attention:
-                    outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
-                else:
-                    outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
+                outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
 
                 f_dim = -1
                 outputs = outputs[:, -self.config.model.pred_len:, f_dim:]
@@ -115,18 +110,12 @@ class Exp_Imputation(Exp_Basic):
                 target = target.float().to(self.device)
                 batch_x_mark = batch_x_mark.float().to(self.device)
                 batch_y_mark = batch_y_mark.float().to(self.device)
-
                 # decoder input
                 dec_inp = torch.zeros_like(target[:, -self.config.model.pred_len:, :]).float()
                 dec_inp = torch.cat([target[:, :self.config.model.label_len, :], dec_inp], dim=1).float().to(self.device)
 
                 # encoder - decoder
-
-                if self.config.model.output_attention:
-                    outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
-                    
-                else:
-                    outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
+                outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
                 # print(outputs.shape,batch_y.shape)
                 f_dim = -1
                 outputs = outputs[:, -self.config.model.pred_len:, f_dim:]
@@ -172,78 +161,13 @@ class Exp_Imputation(Exp_Basic):
 
         return self.model
 
-    def ieval(self, exp_dir):
-        test_loader = self._get_data(flag='test')
-        ckpt_path = os.path.join(exp_dir, 'checkpoint.pt')
-        
-        print('loading model')
-        self.model.load_state_dict(torch.load(ckpt_path))
-
-        preds = []
-        trues = []
-        inputx = []
-        folder_path = os.path.join(exp_dir, 'results')
-
-        os.makedirs(folder_path, exist_ok=True)
-
-        self.model.eval()
-        with torch.no_grad():
-            for i, (batch_x, target, batch_x_mark, batch_y_mark) in enumerate(test_loader):
-                batch_x = batch_x.float().to(self.device)
-                target = target.float().to(self.device)
-                batch_x_mark = batch_x_mark.float().to(self.device)
-                batch_y_mark = batch_y_mark.float().to(self.device)
-                
-                # decoder input
-                dec_inp = torch.zeros_like(target[:, -self.config.model.pred_len:, :]).float()
-                dec_inp = torch.cat([target[:, :self.config.model.label_len, :], dec_inp], dim=1).float().to(self.device)
-                # encoder - decoder
-
-                if self.config.model.output_attention:
-                    outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
-
-                else:
-                    outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
-
-                f_dim = -1
-                # print(outputs.shape,batch_y.shape)
-                outputs = outputs[:, -self.config.model.pred_len:, f_dim:]
-                # batch_y = batch_y[:, -self.args.pred_len:, f_dim:].to(self.device)
-                outputs = outputs.detach().cpu().numpy()
-                target = target[:, -self.config.model.pred_len:].detach().cpu().numpy()
-
-                pred = outputs  # outputs.detach().cpu().numpy()  # .squeeze()
-                true = target  # batch_y.detach().cpu().numpy()  # .squeeze()
-
-                preds.append(pred)
-                trues.append(true)
-                inputx.append(batch_x.detach().cpu().numpy())
-
-            
-        preds = np.concatenate(preds, axis=0).reshape(-1, 1)
-        trues = np.concatenate(trues, axis=0).reshape(-1, 1)
-
-        visual(trues[:, -1], preds[:, -1], os.path.join(folder_path, 'test.png'))
-        inputx = np.concatenate(inputx, axis=0)
-
-        mae, mse, rmse, mape, mspe, rse, corr = metric(preds, trues)
-        print('mse:{}, mae:{}'.format(mse, mae))
-        f = open("result.txt", 'a')
-        f.write('mse:{}, mae:{}, rse:{}, corr:{}'.format(mse, mae, rse, corr))
-        f.write('\n')
-        f.write('\n')
-        f.close()
-
-
-        np.save(folder_path + 'pred.npy', preds)
-        return
-
     def eval(self, exp_dir):
         test_loader = self._get_data(flag='pred')
         ckpt_path = os.path.join(exp_dir, 'checkpoint.pt')
         
         print('loading model')
         self.model.load_state_dict(torch.load(ckpt_path))
+        print(f'Model loaded from {ckpt_path}')
 
         preds = []
         ground_truth = []
@@ -278,8 +202,12 @@ class Exp_Imputation(Exp_Basic):
                 ground_truth.append(target[:, -self.config.model.pred_len:, :].numpy())
 
         # preds = np.array(preds)
-        preds = np.concatenate(preds, axis=0)
-        ground_truths = np.concatenate(ground_truth, axis=0)
+        preds = np.concatenate(preds, axis=0).reshape(-1, 1)
+        ground_truths = np.concatenate(ground_truth, axis=0).reshape(-1, 1)
+        # compute metrics
+        mae, mse, rmse, mape, mspe, rse, corr = metric(preds, ground_truths)
+        print(f'MAE: {mae:.4f}, MSE: {mse:.4f}'
+              f'RMSE: {rmse:.4f}, MAPE: {mape:.4f}, MSPE: {mspe:.4f}, RSE: {rse:.4f}, CORR: {corr:.4f}')
         # if (pred_data.scale):
             # preds = pred_data.inverse_transform(preds)
 
@@ -297,10 +225,11 @@ class Exp_Imputation(Exp_Basic):
         os.makedirs(pred_dir, exist_ok=True)   
         np.savez(os.path.join(pred_dir, f'{title}.npz'), **save_data)
         # pd.DataFrame(np.append(np.transpose([pred_data.future_dates]), preds[0], axis=1), columns=pred_data.cols).to_csv(folder_path + 'real_prediction.csv', index=False)
-        plt.plot(np.reshape(preds, (-1,)), label='Prediction')
-        plt.plot(np.reshape(ground_truths, (-1,)), label='Ground truth')
+        plt.plot(preds.reshape(-1), label='Prediction')
+        plt.plot(ground_truths.reshape(-1), label='Ground truth')
         plt.legend()
 
         plt.title(f'{title}')
         plt.savefig(os.path.join(pred_dir, f'{title}.png'))
+        print(f'Prediction saved at {pred_dir}/{title}.png')
         return

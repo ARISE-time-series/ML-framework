@@ -5,9 +5,33 @@ import pandas as pd
 import torch
 from torch.utils.data import Dataset
 
+from scipy.signal import medfilt
+
 from sklearn.preprocessing import StandardScaler
 from .preprocess import z_score, get_array
 from utils.timefeatures import time_features
+
+_mean_std_dict = {
+    'Lactate': (8.0, 1.0),
+    'Na': (40.0, 6.0),
+    'K': (5.0, 0.5),
+    'Current (uAmps)': (6.0, 2.0),
+    'Temperature (°C)': (32.0, 0.5),
+}
+
+
+def fourier_embedding(x, num_channels, max_positions=10000):
+    '''
+    x: N x C ndarray
+    num_channels: int, number of channels to encode
+    sin, cost embedding
+    '''
+    freqs = np.arange(0, num_channels // 2, dtype=np.float32) / (num_channels / 2)
+    freqs = (1 / max_positions) ** freqs
+
+    emb = np.outer(x, freqs)  # NxC x (num_channels // 2)
+    emb = np.concatenate([np.sin(emb), np.cos(emb)], axis=-1).reshape(x.shape[0], -1)
+    return emb
 
 
 
@@ -40,7 +64,7 @@ class EMGDataset(Dataset):
         for subject_id in subject_list:
             for act_id, act in activities.items():
                 print(f'Loading Subject {subject_id} {act} EMG data...')
-                file_path = os.path.join(root, f'Subject_{subject_id}_cleaned', f'{act_id+1}_{act} EMG.xlsx')
+                file_path = os.path.join(root, f'Subject {subject_id}_cleaned', f'{act_id+1}_{act} EMG.xlsx')
                 df = pd.read_excel(file_path, sheet_name=None)
                 df = pd.concat(df.values(), ignore_index=True)
                 df = truncate(df)
@@ -74,7 +98,7 @@ class PulseData(Dataset):
         for subject_id in subject_list:
             for act_id, act in activities.items():
                 print(f'Loading Subject {subject_id} {act} Pulse data...')
-                file_path = os.path.join(root, f'Subject_{subject_id}_cleaned', f'{act_id+1}_{act} Pulse data.xlsx')
+                file_path = os.path.join(root, f'Subject {subject_id}_cleaned', f'{act_id+1}_{act} Pulse data.xlsx')
                 df = pd.read_excel(file_path, sheet_name=None)
                 df = pd.concat(df.values(), ignore_index=True)
                 num_seconds = int(df['Time'].max())
@@ -106,7 +130,9 @@ class PulseData(Dataset):
 class Dataset_CLS_encoded(Dataset):
     def __init__(self, root_path,
                  subjects=[1, 2, 3, 4], 
-                 flag='train', size=None, scale=True, 
+                 flag='train', size=None, 
+                 scale=False, 
+                 embedding=None,
                  timeenc=0, freq='h'):
         # size [seq_len, label_len, pred_len]
         # info
@@ -127,6 +153,7 @@ class Dataset_CLS_encoded(Dataset):
         assert flag in ['train', 'test', 'val']
 
         self.scale = scale
+        self.embedding = embedding
         self.timeenc = timeenc
         self.freq = freq
 
@@ -169,14 +196,21 @@ class Dataset_CLS_encoded(Dataset):
         
         cols_data = df_raw.columns[1:-1]    # remove date and target
         df_data = df_raw[cols_data]
-        
+        # apply median filter to all the columns
+        df_data = df_data.apply(lambda x: medfilt(x, kernel_size=5))
+        if self.scale:
+            df_data = df_data.apply(lambda x: z_score(x, *_mean_std_dict[x.name]))
+        if self.embedding == 'fourier':
+            embeded_data = fourier_embedding(df_data.values, num_channels=8)
+        else:
+            embeded_data = df_data.values
         # load EMG and Pulse
         df_emg = pd.read_csv(emg_path)
         emg_arr = get_array(df_emg)
         df_pulse = pd.read_csv(pulse_path)
         pulse_arr = get_array(df_pulse)
 
-        data = np.concatenate([df_data.values, emg_arr, pulse_arr], axis=1)
+        data = np.concatenate([embeded_data, emg_arr, pulse_arr], axis=1)
         print(f'Loaded Subject: {subject_id}, act: {act}, data shape: {data.shape}')
 
         if self.scale:
@@ -227,7 +261,8 @@ class Dataset_IMP_encoded(Dataset):
     def __init__(self, root_path,
                  subjects=[1, 2, 3, 4], 
                  flag='train', size=None,
-                 scale=True, 
+                 scale=False, 
+                 embedding=None,
                  timeenc=0, freq='h'):
         # size [seq_len, label_len, pred_len]
         # info
@@ -247,6 +282,7 @@ class Dataset_IMP_encoded(Dataset):
 
         self.target = 'Fatigue level'
         self.scale = scale
+        self.embedding = embedding
         self.timeenc = timeenc
         self.freq = freq
 
@@ -283,14 +319,18 @@ class Dataset_IMP_encoded(Dataset):
 
         cols_data = df_raw.columns[1:-1]    # remove date and target
         df_data = df_raw[cols_data]
-        
+        if self.embedding == 'fourier':
+            embeded_data = fourier_embedding(df_data.values, num_channels=8)
+        else:
+            embeded_data = df_data.values
+
         # load EMG and Pulse
         df_emg = pd.read_csv(emg_path)
         emg_arr = get_array(df_emg)
         df_pulse = pd.read_csv(pulse_path)
         pulse_arr = get_array(df_pulse)
 
-        data = np.concatenate([df_data.values, emg_arr, pulse_arr], axis=1)
+        data = np.concatenate([embeded_data, emg_arr, pulse_arr], axis=1)
         print(f'Loaded Subject: {subject_id}, act: {act}, data shape: {data.shape}')
 
         if self.scale:
@@ -349,7 +389,9 @@ class Dataset_IMP_Pred_encoded(Dataset):
     def __init__(self, root_path, 
                  size=None, flag='pred',
                  subject=5, act='Biking',
-                 scale=True, inverse=False, 
+                 scale=False,
+                 embedding=None, 
+                 inverse=False, 
                  timeenc=0, freq='h', cols=None):
         # size [seq_len, label_len, pred_len]
         # info
@@ -365,6 +407,7 @@ class Dataset_IMP_Pred_encoded(Dataset):
 
         self.target = 'Fatigue level'
         self.scale = scale
+        self.embedding = embedding
         self.inverse = inverse
         self.timeenc = timeenc
         self.freq = freq
@@ -390,14 +433,18 @@ class Dataset_IMP_Pred_encoded(Dataset):
 
         cols_data = df_raw.columns[1:-1]
         df_data = df_raw[cols_data]
-        
+        if self.embedding == 'fourier':
+            embeded_data = fourier_embedding(df_data.values, num_channels=8)
+        else:
+            embeded_data = df_data.values
+
         # load EMG and Pulse
         df_emg = pd.read_csv(emg_path)
         emg_arr = get_array(df_emg)
         df_pulse = pd.read_csv(pulse_path)
         pulse_arr = get_array(df_pulse)
 
-        data = np.concatenate([df_data.values, emg_arr, pulse_arr], axis=1)
+        data = np.concatenate([embeded_data, emg_arr, pulse_arr], axis=1)
 
         if self.scale:
             self.scaler = StandardScaler()

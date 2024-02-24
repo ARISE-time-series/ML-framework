@@ -27,7 +27,7 @@ if __name__ == '__main__':
     torch.manual_seed(args.seed)
 
     config = OmegaConf.load(args.config)
-    if config.model.task_name == 'imputation':
+    if config.model.task_name == 'imputation' or config.model.task_name == 'forecast':
         exp = Exp_Imputation(config)
     elif config.model.task_name == 'classification':
         exp = Exp_Classification(config)
