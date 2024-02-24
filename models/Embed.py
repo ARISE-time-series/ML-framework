@@ -59,40 +59,30 @@ class FixedEmbedding(nn.Module):
 
 
 class TemporalEmbedding(nn.Module):
-    def __init__(self, d_model, embed_type='fixed', freq='h'):
+    def __init__(self, d_model, embed_type='fixed', freq='s'):
         super(TemporalEmbedding, self).__init__()
 
-        minute_size = 4
-        hour_size = 24
-        weekday_size = 7
-        day_size = 32
-        month_size = 13
+        sec_size = 60
+        minute_size = 60
 
         Embed = FixedEmbedding if embed_type == 'fixed' else nn.Embedding
-        if freq == 't':
-            self.minute_embed = Embed(minute_size, d_model)
-        self.hour_embed = Embed(hour_size, d_model)
-        self.weekday_embed = Embed(weekday_size, d_model)
-        self.day_embed = Embed(day_size, d_model)
-        self.month_embed = Embed(month_size, d_model)
+
+        self.sec_embed = Embed(sec_size, d_model)
+        self.minute_embed = Embed(minute_size, d_model)
 
     def forward(self, x):
         x = x.long()
+        sec_x = self.sec_embed(x[:, :, 0])
+        minute_x = self.minute_embed(x[:, :, 1])
 
-        minute_x = self.minute_embed(x[:, :, 4]) if hasattr(self, 'minute_embed') else 0.
-        hour_x = self.hour_embed(x[:, :, 3])
-        weekday_x = self.weekday_embed(x[:, :, 2])
-        day_x = self.day_embed(x[:, :, 1])
-        month_x = self.month_embed(x[:, :, 0])
-
-        return hour_x + weekday_x + day_x + month_x + minute_x
+        return sec_x + minute_x
 
 
 class TimeFeatureEmbedding(nn.Module):
     def __init__(self, d_model, embed_type='timeF', freq='h'):
         super(TimeFeatureEmbedding, self).__init__()
 
-        freq_map = {'h': 4, 't': 5, 's': 6, 'm': 1, 'a': 1, 'w': 2, 'd': 3, 'b': 3}
+        freq_map = {'h': 4, 't': 5, 's': 3, 'm': 1, 'a': 1, 'w': 2, 'd': 3, 'b': 3}
         d_inp = freq_map[freq]
         self.embed = nn.Linear(d_inp, d_model, bias=False)
 
