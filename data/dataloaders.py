@@ -27,30 +27,34 @@ dataset_dict = {
 
 
 def get_loader(config, 
-               flag='train'):
+               flag='train', 
+               subject=None,
+               act=None):
     root_path = config.data.root_path
     task_name = config.model.task_name
+
     subject_list = config.data.train_subjects if flag == 'train' else config.data.test_subjects
 
-    timeenc = 0 if config.model.embed != 'timeF' else 1
+    timeenc = 1 if config.model.embed == 'timeF' else 0
     size = [config.model.seq_len, config.model.label_len, config.model.pred_len]
     
     drop_last = True if flag == 'train' else False
     shuffle = True if flag == 'train' else False
     batch_size = 1 if flag == 'pred' else config.train.batch_size
+    freq = config.model.freq
     # batch_size = config.train.batch_size
     data_kwargs = {
         'root_path': root_path,
         'flag': flag,
         'size': size,
         'timeenc': timeenc,
-        'freq': 'h', 
+        'freq': freq, 
         'scale': config.data.scale,
         'embedding': config.data.embedding
     }
     if (task_name == 'imputation' or task_name == 'forecast') and flag == 'pred':
-        data_kwargs['subject'] = subject_list[0]
-        data_kwargs['act'] = config.data.test_act
+        data_kwargs['subject'] = subject
+        data_kwargs['act'] = act
     else:
         data_kwargs['subjects'] = subject_list
         

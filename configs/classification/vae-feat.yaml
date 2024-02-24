@@ -1,9 +1,9 @@
 data:
   type: encoded  # clean, raw, encoded
-  root_path: ../data
-  train_subjects: [1, 2, 3, 4]
-  test_subjects: [5]
-  scale: True
+  root_path: ../data/fatigue
+  train_subjects: [1, 2, 3, 4, 5, 6, 7, 8]
+  test_subjects: [9]
+  scale: False
   embedding: None
 
 model: 
@@ -15,7 +15,7 @@ model:
   label_len: 0
   embed_type: 0
   top_k: 5
-  enc_in: 45
+  enc_in: 37
   dec_in: 1
   c_out: 1
   d_model: 512
@@ -28,19 +28,19 @@ model:
   dropout: 0.5
   activation: gelu
   output_attention: False
-  freq: h
+  freq: s
 
 train:
-  epochs: 20
+  epochs: 30
   batch_size: 32
   patience: 10
   lr: 0.001
   lradj: type1
-  weight_decay: 0.001
+  weight_decay: 0.0001
   log_every: 100
 
 log:
   project: fatigue
   group: classfication-learned
-  tag: train4test1-filtered-scale
+  tag: train8test1
 

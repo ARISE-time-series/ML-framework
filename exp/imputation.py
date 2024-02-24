@@ -34,8 +34,8 @@ class Exp_Imputation(Exp_Basic):
 
         return model
 
-    def _get_data(self, flag):
-        data_loader = get_loader(self.config, flag)
+    def _get_data(self, flag, subject=None, act=None):
+        data_loader = get_loader(self.config, flag, subject, act)
         return data_loader
 
     def _select_optimizer(self):
@@ -161,8 +161,8 @@ class Exp_Imputation(Exp_Basic):
 
         return self.model
 
-    def eval(self, exp_dir):
-        test_loader = self._get_data(flag='pred')
+    def eval(self, exp_dir, subject, act):
+        test_loader = self._get_data(flag='pred', subject=subject, act=act)
         ckpt_path = os.path.join(exp_dir, 'checkpoint.pt')
         
         print('loading model')
@@ -216,8 +216,6 @@ class Exp_Imputation(Exp_Basic):
             'ground_truths': ground_truths,
         }
         
-        subject = self.config.data.test_subjects[0]
-        act = self.config.data.test_act
         title = f'{subject}-{act}'
         # result save
 
@@ -231,5 +229,6 @@ class Exp_Imputation(Exp_Basic):
 
         plt.title(f'{title}')
         plt.savefig(os.path.join(pred_dir, f'{title}.png'))
+        plt.clf()
         print(f'Prediction saved at {pred_dir}/{title}.png')
         return
