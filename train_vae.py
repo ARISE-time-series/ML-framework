@@ -27,7 +27,7 @@ def main(args):
     print(activities)
     # set up directory
     exp_dir = os.path.join(
-        args.exp_dir, f"{config.data.feature}-encoder-{config.model.num_modes}modes"
+        args.exp_dir, f"{config.data.feature}-encoder-{config.model.num_modes}modes-{config.log.tag}"
     )
     os.makedirs(exp_dir, exist_ok=True)
     ckpt_dir = os.path.join(exp_dir, "checkpoints")
