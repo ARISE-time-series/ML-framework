@@ -130,12 +130,17 @@ class PulseData(Dataset):
 class Dataset_CLS_encoded(Dataset):
     def __init__(self, root_path,
                  subjects=[1, 2, 3, 4], 
-                 flag='train', size=None, 
+                 cols=None,
+                 encode_dir='Encoded',
+                 flag='train', 
+                 size=None, 
                  scale=False, 
                  embedding=None,
                  timeenc=0, freq='h'):
         # size [seq_len, label_len, pred_len]
         # info
+        self.cols = cols
+        self.encode_dir = encode_dir
         self.subject_list = subjects
         self.activities = ['Biking', 'VR', 'Hand grip', 'Stroop']
         self.act2label = {key: value for value, key in enumerate(self.activities)}
@@ -180,22 +185,20 @@ class Dataset_CLS_encoded(Dataset):
 
     def __read_data__(self, subject_id, act):
         datapath = os.path.join(self.root_path, f'Subject_{subject_id}-cleaned-{act}.csv')
-        emg_path = os.path.join(self.root_path, 'Encoded', f'Subject_{subject_id}-cleaned-{act}-EMG.csv')
-        pulse_path = os.path.join(self.root_path, 'Encoded', f'Subject_{subject_id}-cleaned-{act}-Pulse.csv')
+        emg_path = os.path.join(self.root_path, self.encode_dir, f'Subject_{subject_id}-cleaned-{act}-EMG.csv')
+        pulse_path = os.path.join(self.root_path, self.encode_dir, f'Subject_{subject_id}-cleaned-{act}-Pulse.csv')
         df_raw = pd.read_csv(datapath)
         '''
         df_raw.columns: ['date', ...(other features), target feature]
         '''
-        columns = ['date', 'Lactate', 'Na', 'K', 'Current (uAmps)', 'Temperature (°C)', 'Fatigue level']
-        df_raw = df_raw[columns]
-
+        # columns = ['date', 'Lactate', 'Na', 'K', 'Current (uAmps)', 'Temperature (°C)', 'Fatigue level']
+        columns = self.cols if self.cols else df_raw.columns
+        df_data = df_raw[columns]
 
         border1 = 0
-        border2 = len(df_raw)
-
+        border2 = len(df_data)
         
-        cols_data = df_raw.columns[1:-1]    # remove date and target
-        df_data = df_raw[cols_data]
+        # cols_data = df_raw.columns[1:-1]    # remove date and target
         # apply median filter to all the columns
         df_data = df_data.apply(lambda x: medfilt(x, kernel_size=5))
         if self.scale:
@@ -262,12 +265,14 @@ class Dataset_CLS_encoded(Dataset):
 class Dataset_IMP_encoded(Dataset):
     def __init__(self, root_path,
                  subjects=[1, 2, 3, 4], 
+                 cols=None,
                  flag='train', size=None,
                  scale=False, 
                  embedding=None,
                  timeenc=0, freq='h'):
         # size [seq_len, label_len, pred_len]
         # info
+        self.cols = cols
         self.subject_list = subjects
         self.activities = ['Biking', 'VR', 'Hand grip', 'Stroop']
         if size == None:
@@ -313,7 +318,8 @@ class Dataset_IMP_encoded(Dataset):
         '''
         df_raw.columns: ['date', ...(other features), target feature]
         '''
-        columns = ['date', 'Lactate', 'Na', 'K', 'Current (uAmps)', 'Temperature (°C)', 'Fatigue level']
+        columns = self.cols if self.cols else df_raw.columns 
+        # ['date', 'Lactate', 'Na', 'K', 'Current (uAmps)', 'Temperature (°C)', 'Fatigue level']
         df_raw = df_raw[columns]
 
         border1 = 0

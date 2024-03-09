@@ -1,7 +1,7 @@
 data:
   feature: Pulse
   root: ../data/fatigue
-  subject_list: [1, 2, 3, 4, 5, 6, 7, 8]
+  subject_list: [1, 2, 3, 4, 5, 6, 7, 8, 9]
   activities: {0: 'Stroop', 1: 'VR', 2: 'Hand grip', 3: 'Biking'}
   encode_list: [1, 2, 3, 4, 5, 6, 7, 8, 9]
 
@@ -20,4 +20,4 @@ train:
 log:
   project: fatigue
   entity: hzzheng
-  group: Pulse-encoder
+  group: Pulse-encoder-all

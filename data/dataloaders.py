@@ -45,7 +45,9 @@ def get_loader(config,
     # batch_size = config.train.batch_size
     data_kwargs = {
         'root_path': root_path,
+        'encode_dir': config.data.encode_dir,
         'flag': flag,
+        'cols': config.data.cols,
         'size': size,
         'timeenc': timeenc,
         'freq': freq, 
