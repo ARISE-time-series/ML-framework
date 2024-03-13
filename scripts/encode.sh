@@ -1,8 +1,8 @@
 # pretrain EMG encoder
-python3 train_vae.py --config configs/pretrain/EMG.yaml
+python3 train_vae.py --config configs/pretrain/EMG-vae.yaml
 
 # pretrain Pulse encoder
-python3 train_vae.py --config configs/pretrain/Pulse.yaml
+python3 train_vae.py --config configs/pretrain/Pulse-vae.yaml
 
 # encode EMG
 python3 encode_data.py --config configs/pretrain/EMG.yaml \

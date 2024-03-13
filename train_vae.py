@@ -7,15 +7,24 @@ from argparse import ArgumentParser
 from omegaconf import OmegaConf
 
 import torch
-import torch.nn as nn
+import torch.nn.functional as F
 
-from models.vae import VAE
+from models.vae import VAE, AE
+
 from data.datasets import EMGDataset, PulseData
 
 from torch.utils.data import DataLoader
 
 import wandb
 from tqdm import tqdm
+
+
+def recon_loss_fn(x, x_recon):
+    return F.mse_loss(x_recon, x)
+
+
+def kl_loss_fn(mean, logvar):
+    return -0.5 * torch.mean(1 + logvar - mean.pow(2) - logvar.exp())
 
 
 def main(args):
@@ -52,15 +61,17 @@ def main(args):
         num_workers=4,
         drop_last=True,
     )
-
+    num_batches = len(train_loader)
     # build model
-    model = VAE(num_modes=config.model.num_modes, layers=config.model.layers)
+    if config.model.name == "vae":
+        model = VAE(num_modes=config.model.num_modes, layers=config.model.layers)
+    else:
+        model = AE(num_modes=config.model.num_modes, layers=config.model.layers)
     model = model.to(device)
 
     # optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=config.train.lr, weight_decay=config.train.weight_decay)
 
-    criterion = nn.MSELoss()
     # set up wandb
     if args.use_wandb:
         wandb.init(
@@ -69,31 +80,60 @@ def main(args):
 
     # training loop
     model.train()
-    train_steps = 0
     for epoch in tqdm(range(config.train.epochs)):
+        avg_loss = 0.0
+        avg_recon_loss = 0.0
+        avg_kl_loss = 0.0
         for batch in train_loader:
             batch = batch.to(device)
             optimizer.zero_grad()
-            out = model(batch)
-            loss = criterion(out, batch)
-            loss.backward()
-            optimizer.step()
-            if args.use_wandb:
-                wandb.log({"loss": loss.item()})
 
-            if train_steps % config.train.log_freq == 0:
-                print(f"Epoch {epoch}, total step {train_steps}, loss {loss.item()}")
-            if train_steps % config.train.save_freq == 0 and train_steps > 0:
-                ckpt_path = os.path.join(ckpt_dir, f"ckpt_{train_steps}.pt")
-                print(f"Saving model to {ckpt_path}")
-                torch.save(model.state_dict(), ckpt_path)
-            train_steps += 1
+            if config.model.name == "vae":
+                rec_batch, mean, logvar = model(batch)
+            else:
+                rec_batch = model(batch)
+                mean, logvar = None, None
+
+            recon_loss = recon_loss_fn(batch, rec_batch)
+            if mean is not None and logvar is not None:
+                kl_loss = kl_loss_fn(mean, logvar)
+            else:
+                kl_loss = torch.zeros(1, device=device)            
+            
+            loss = recon_loss + kl_loss * config.train.kl_weight
+
+            loss.backward()
+
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            optimizer.step()
+            
+            avg_loss += loss.item()
+            avg_recon_loss += recon_loss.item()
+            avg_kl_loss += kl_loss.item()
+        
+        if epoch % config.train.save_freq == 0 and epoch > 0:
+            ckpt_path = os.path.join(ckpt_dir, f"ckpt_{epoch}.pt")
+            print(f"Saving model to {ckpt_path}")
+            torch.save(model.state_dict(), ckpt_path)
+        
+        avg_loss /= num_batches
+        avg_recon_loss /= num_batches
+        avg_kl_loss /= num_batches
+        if args.use_wandb:
+            wandb.log({"train/loss": avg_loss, 
+                        'train/recon_loss': avg_recon_loss,
+                        'train/kl_loss': avg_kl_loss})
+
+        print(f'Epoch {epoch}, loss {avg_loss}; ' 
+                f'recon_loss {avg_recon_loss}, kl_loss {avg_kl_loss}')
+
 
 
 if __name__ == "__main__":
+    torch.backends.cudnn.benchmark = True
     parser = ArgumentParser()
     parser.add_argument(
-        "--config", type=str, default="configs/pretrain/Pulse_encoder.yaml"
+        "--config", type=str, default="configs/pretrain/EMG-vae.yaml"
     )
     parser.add_argument("--exp_dir", type=str, default="exps/encoder")
     parser.add_argument("--use_wandb", action="store_true", help="use wandb to log")

@@ -6,7 +6,7 @@ data:
   encode_list: [1, 2, 3, 4, 5, 6, 7, 8, 9]
   
 model:
-  name: ae
+  name: vae
   num_modes: 236
   layers: [256, 128, 32]
 
@@ -16,11 +16,11 @@ train:
   epochs: 61
   save_freq: 5
   log_freq: 200
-  weight_decay: 0.00001
-  kl_weight: 0.0
+  weight_decay: 0.0
+  kl_weight: 0.01
 
 log:
   project: fatigue
   entity: hzzheng
-  group: EMG-ae
-  tag: ae
+  group: EMG-vae-236
+  tag: vae

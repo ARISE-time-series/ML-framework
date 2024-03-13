@@ -1,11 +1,12 @@
 data:
   feature: Pulse
   root: ../data/fatigue
-  subject_list: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+  subject_list: [1, 2, 3, 4, 5, 6, 7, 8]
   activities: {0: 'Stroop', 1: 'VR', 2: 'Hand grip', 3: 'Biking'}
   encode_list: [1, 2, 3, 4, 5, 6, 7, 8, 9]
 
 model:
+  name: ae
   num_modes: 32
   layers: [32, 16]
 
@@ -13,11 +14,13 @@ train:
   lr: 0.0002
   batch_size: 64
   epochs: 60
-  save_freq: 5000
+  save_freq: 5
   log_freq: 200
   weight_decay: 0.00001
+  kl_weight: 0.0
 
 log:
   project: fatigue
   entity: hzzheng
-  group: Pulse-encoder-all
+  group: Pulse-encoder-ae
+  tag: ae

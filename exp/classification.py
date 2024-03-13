@@ -149,7 +149,8 @@ class Exp_Classification(Exp_Basic):
             wandb.finish()
         best_model_path = os.path.join(path, 'checkpoint.pt')
         self.model.load_state_dict(torch.load(best_model_path))
-
+        best_acc = -early_stopping.val_loss_min
+        print(f'Best validation accuracy: {best_acc}')
         return self.model
 
     def eval(self, exp_dir):

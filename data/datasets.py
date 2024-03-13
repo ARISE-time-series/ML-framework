@@ -91,8 +91,8 @@ class PulseData(Dataset):
     def __init__(self, root, subject_list, activities, transform=None):
         self.root = root
         self.df_list = []
-        self.mean = 8.38e-23
-        self.std = 7.51e-24
+        self.mean = 0.5
+        self.std = 0.5
         self.sample_freq = 140
         self.borders = [0]
         for subject_id in subject_list:
@@ -116,7 +116,7 @@ class PulseData(Dataset):
         seg_id = idx - self.borders[df_id]
         df = self.df_list[df_id]
         seg = df.loc[df['Time'].between(seg_id, seg_id + 1)]
-        zscores = z_score(seg['Data'].values, self.mean, self.std)
+        zscores = z_score(seg['Filtered Data'].values, self.mean, self.std)
         clean_seg = zscores
         
         if clean_seg.shape[0] < self.sample_freq:
@@ -260,7 +260,137 @@ class Dataset_CLS_encoded(Dataset):
 
     def inverse_transform(self, data):
         return self.scaler.inverse_transform(data)
+
+
+class Dataset_CLS_clean(Dataset):
+    def __init__(self, root_path,
+                 subjects=[1, 2, 3, 4], 
+                 cols=None,
+                 encode_dir=None,   # path to EMG and Pulse clean data
+                 flag='train', 
+                 size=None, 
+                 scale=False, 
+                 embedding=None,
+                 timeenc=0, freq='h'):
+        # size [seq_len, label_len, pred_len]
+        # info
+        self.cols = cols
+        self.encode_dir = encode_dir
+        self.subject_list = subjects
+        self.activities = ['Biking', 'VR', 'Hand grip', 'Stroop']
+        self.act2label = {key: value for value, key in enumerate(self.activities)}
+        self.num_classes = len(self.activities)
+        if size == None:
+            self.seq_len = 24 * 4 * 4
+            self.label_len = 24 * 4
+            self.pred_len = 24 * 4
+        else:
+            self.seq_len = size[0]
+            self.label_len = size[1]
+            self.pred_len = size[2]
+        # init
+        flag = flag.lower()
+        assert flag in ['train', 'test', 'val']
+
+        self.scale = scale
+        self.embedding = embedding
+        self.timeenc = timeenc
+        self.freq = freq
+
+        self.root_path = root_path
+        self.build_data()
+
+    def build_data(self):
+        self.feat_arr = []
+        self.target_arr = []
+        self.stamp_arr = []
+        self.borders = [-0.5]
+
+        for subject_id in self.subject_list:
+            for act in self.activities:
+                feat, stamp = self.__read_data__(subject_id=subject_id, act=act)
+                self.feat_arr.append(feat)
+                self.target_arr.append(self.act2label[act])
+                self.stamp_arr.append(stamp)
+                self.borders.append(self.borders[-1] + len(feat) - self.seq_len - self.label_len + 1)
+
+
+    def __read_data__(self, subject_id, act):
+        datapath = os.path.join(self.root_path, f'Subject_{subject_id}-cleaned-{act}.csv')
+        emg_path = os.path.join(self.root_path, self.encode_dir, f'Subject_{subject_id}-cleaned-{act}-EMG.csv')
+        pulse_path = os.path.join(self.root_path, self.encode_dir, f'Subject_{subject_id}-cleaned-{act}-Pulse.csv')
+        df_raw = pd.read_csv(datapath)
+        '''
+        df_raw.columns: ['date', ...(other features), target feature]
+        '''
+        # columns = ['date', 'Lactate', 'Na', 'K', 'Current (uAmps)', 'Temperature (°C)', 'Fatigue level']
+        columns = self.cols if self.cols else df_raw.columns
+        df_data = df_raw[columns]
+
+        border1 = 0
+        border2 = len(df_data)
+        
+        # cols_data = df_raw.columns[1:-1]    # remove date and target
+        # apply median filter to all the columns
+        df_data = df_data.apply(lambda x: medfilt(x, kernel_size=5))
+        if self.scale:
+            df_data = df_data.apply(lambda x: z_score(x, *_mean_std_dict[x.name]))
+        if self.embedding == 'fourier':
+            embeded_data = fourier_embedding(df_data.values, num_channels=8)
+        else:
+            embeded_data = df_data.values
+        # load EMG and Pulse
+        df_emg = pd.read_csv(emg_path)
+        emg_arr = get_array(df_emg)
+        df_pulse = pd.read_csv(pulse_path)
+        pulse_arr = get_array(df_pulse)
+
+        data = np.concatenate([embeded_data, emg_arr, pulse_arr], axis=1)
+        print(f'Loaded Subject: {subject_id}, act: {act}, data shape: {data.shape}')
+
+        if self.scale:
+            self.scaler = StandardScaler()
+            self.scaler.fit(data)
+            data = self.scaler.transform(data)
+
+        df_stamp = df_raw[['date']][border1:border2]
+        df_stamp['date'] = pd.to_datetime(df_stamp.date)
+        if self.timeenc == 0:
+            # df_stamp['month'] = df_stamp.date.apply(lambda row: row.month, 1)
+            # df_stamp['day'] = df_stamp.date.apply(lambda row: row.day, 1)
+            # df_stamp['weekday'] = df_stamp.date.apply(lambda row: row.weekday(), 1)
+            # df_stamp['hour'] = df_stamp.date.apply(lambda row: row.hour, 1)
+            df_stamp['minute'] = df_stamp.date.apply(lambda row: row.minute, 1)
+            df_stamp['second'] = df_stamp.date.apply(lambda row: row.second, 1)
+            data_stamp = df_stamp.drop(columns=['date']).values
+        elif self.timeenc == 1:
+            data_stamp = time_features(pd.to_datetime(df_stamp['date'].values), freq=self.freq)
+            data_stamp = data_stamp.transpose(1, 0)
+
+        data_x = data[border1:border2]
+        return data_x, data_stamp
+
+    def __getitem__(self, index):
+        series_idx = np.searchsorted(self.borders, index, side="right") - 1
+        idx = index - int(self.borders[series_idx] + 0.5)
+
+        data_x = self.feat_arr[series_idx]
+        label = self.target_arr[series_idx]
+        data_stamp = self.stamp_arr[series_idx]
+
+        s_begin = idx + self.label_len
+        s_end = s_begin + self.seq_len
+
+        seq_x = data_x[s_begin:s_end]
+
+        seq_x_mark = data_stamp[s_begin:s_end]
+
+        return seq_x, label, seq_x_mark
+
+    def __len__(self):
+        return int(self.borders[-1]+0.5)
     
+
 
 class Dataset_IMP_encoded(Dataset):
     def __init__(self, root_path,

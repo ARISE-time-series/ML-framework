@@ -40,8 +40,7 @@ if __name__ == '__main__':
                            f'seq{config.model.seq_len}_label{config.model.label_len}_pred{config.model.pred_len}_'
                            f'bs{config.train.batch_size}_dm{config.model.d_model}_{config.log.tag}')
     os.makedirs(exp_dir, exist_ok=True)
-    config_path = os.path.join(exp_dir, 'config.yaml')
-    OmegaConf.save(config, config_path)
+    
     if args.test:
         if config.model.task_name == 'classification':     
             exp.eval(exp_dir)
@@ -51,5 +50,7 @@ if __name__ == '__main__':
                     print(act)
                     exp.eval(exp_dir, subject, act)
     else:
+        config_path = os.path.join(exp_dir, 'config.yaml')
+        OmegaConf.save(config, config_path)
         exp.train(exp_dir, eval=True, use_wandb=args.use_wandb)
 

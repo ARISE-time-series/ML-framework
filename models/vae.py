@@ -57,7 +57,7 @@ class Decoder(nn.Module):
         return out
     
 
-class VAE(nn.Module):
+class AE(nn.Module):
     def __init__(self, num_modes=192, layers=[256, 128, 32]):
         super().__init__()
         self.num_modes = num_modes
@@ -72,9 +72,42 @@ class VAE(nn.Module):
         x = self.decoder(x, seq_len)
         # x: (batch_size, in_channels, seq_len)
         return x
-
-
-class ConvEncoder(nn.Module):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
     
+    def encode(self, x):
+        return self.encoder(x)
+
+    def decode(self, x, seq_len):
+        return self.decoder(x, seq_len)
+
+
+class VAE(nn.Module):
+    def __init__(self, num_modes=192, layers=[256, 128, 32]):
+        super().__init__()
+        self.num_modes = num_modes
+        enc_layers = layers[:-1] + [layers[-1] * 2]
+        dec_layers = list(reversed(layers))
+        self.encoder = Encoder(num_modes, layers=enc_layers)
+        self.decoder = Decoder(num_modes, layers=dec_layers)
+    
+    def reprameterization(self, mean, logvar):
+        noise = torch.randn_like(mean)
+        logvar = torch.clamp(logvar, -30.0, 20.0)
+        return mean + torch.exp(logvar / 2) * noise
+    
+    def forward(self, x):
+        seq_len = x.shape[-1]
+
+        enc_out = self.encoder(x)
+        mean, logvar = enc_out.chunk(2, dim=-1)
+        z = self.reprameterization(mean, logvar)
+
+        x = self.decoder(z, seq_len)
+        return x, mean, logvar
+    
+    def encode(self, x):
+        mean, logvar = self.encoder(x).chunk(2, dim=-1)
+        z = self.reprameterization(mean, logvar)
+        return z
+    
+    def decode(self, z, seq_len):
+        return self.decoder(z, seq_len)
