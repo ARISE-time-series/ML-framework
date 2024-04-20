@@ -21,7 +21,10 @@ dataset_dict = {
             'pred': Dataset_IMP_Pred_encoded,
             'train': Dataset_IMP_encoded,
             'test': Dataset_IMP_encoded
-        }
+        }, 
+        'manual': {
+            
+        } 
     }
 }
 

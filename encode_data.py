@@ -43,8 +43,8 @@ def plot_recon(recon_data, gt_data, outdir, subject_id, act, feature):
     '''
     # plot reconstructions
 
-    recon = recon_data.cpu().numpy()
-    gt = gt_data.cpu().numpy()
+    recon = recon_data
+    gt = gt_data
     plt.plot(recon, label='Reconstruction')
     plt.plot(gt, label='Ground Truth')
     plt.legend()
@@ -60,7 +60,7 @@ def main(args):
     subject_list = config.data.encode_list
     activities = config.data.activities
     
-    outdir = os.path.join(args.outdir, f'{config.model.name}-{config.model.num_modes}')
+    outdir = os.path.join(args.outdir, f'{config.model.name}-{config.log.tag}')
     os.makedirs(outdir, exist_ok=True)
     figdir = os.path.join('figs', config.data.feature, f'{config.model.name}-{config.model.num_modes}')
     os.makedirs(figdir, exist_ok=True)
@@ -75,8 +75,8 @@ def main(args):
     model.load_state_dict(ckpt)
 
     model = model.to(device)
-    start_id = 0
-    end_id = 1000
+    # start_id = 0
+    # end_id = 1000
     for subject_id in subject_list:
         for act_id, act in activities.items():
             sub_id_list = [subject_id]
@@ -90,16 +90,33 @@ def main(args):
             batch_size = config.train.batch_size
             data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=4, drop_last=False)
             latents, recon_data, gt_data = encode_data(model, data_loader, device)
-            
+            # averaged construction error
+            mse = torch.nn.functional.mse_loss(recon_data, gt_data)
+            print(f'MSE: {mse.item()}')
+
             latents = latents.cpu().numpy()
-            plot_recon(recon_data.view(-1)[start_id:end_id], gt_data.view(-1)[start_id:end_id], figdir, subject_id, act, config.data.feature)
-            print(latents.shape)
-            # convert to DataFrame
-            df = pd.DataFrame(latents[:, 0, :])
-            # save to csv
-            csv_path = os.path.join(outdir, f'Subject_{subject_id}-cleaned-{act}-{config.data.feature}.csv')
-            df.to_csv(csv_path)
-            print(f'Saved: {csv_path}')
+            recon_data = recon_data.cpu().numpy()
+            gt_data = gt_data.cpu().numpy()
+            
+            if args.reconstruct:
+                recon_data = recon_data.reshape(-1)
+                # unnormalize data
+                recon_data = dataset.unnormalize(recon_data)
+                gt_data = gt_data.reshape(-1)
+                gt_data = dataset.unnormalize(gt_data)
+                # save to csv
+                df = pd.DataFrame({'reconstruction': recon_data, 
+                                   'ground truth': gt_data})
+                csv_path = os.path.join(outdir, f'Subject_{subject_id}-reconstructed-{act}-{config.data.feature}.csv')
+                df.to_csv(csv_path)
+                print(f'Reconstructed signal saved at {csv_path}')
+            else:
+                # convert to DataFrame
+                df = pd.DataFrame(latents[:, 0, :])
+                # save to csv
+                csv_path = os.path.join(outdir, f'Subject_{subject_id}-cleaned-{act}-{config.data.feature}.csv')
+                df.to_csv(csv_path)
+                print(f'Latent code saved at {csv_path}')
 
 
 
@@ -108,5 +125,6 @@ if __name__ == '__main__':
     parser.add_argument('--config', type=str, default='config/encoder.yaml')
     parser.add_argument('--ckpt', type=str, default='path to checkpoint')
     parser.add_argument('--outdir', type=str, default='../data/fatigue')
+    parser.add_argument('--reconstruct', action='store_true')
     args = parser.parse_args()
     main(args)

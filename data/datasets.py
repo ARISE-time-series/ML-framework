@@ -85,6 +85,9 @@ class EMGDataset(Dataset):
             out = clean_seg[:self.sample_freq]
         out = (out - self.mean) / self.std
         return torch.from_numpy(out).float().reshape(1, -1)
+
+    def unnormalize(self, data):
+        return data * self.std + self.mean
     
 
 class PulseData(Dataset):
@@ -125,6 +128,9 @@ class PulseData(Dataset):
             out = clean_seg[:self.sample_freq]
 
         return torch.from_numpy(out).float().reshape(1, -1)
+
+    def unnormalize(self, data):
+        return data * self.std + self.mean
     
 
 class Dataset_CLS_encoded(Dataset):
@@ -224,10 +230,6 @@ class Dataset_CLS_encoded(Dataset):
         df_stamp = df_raw[['date']][border1:border2]
         df_stamp['date'] = pd.to_datetime(df_stamp.date)
         if self.timeenc == 0:
-            # df_stamp['month'] = df_stamp.date.apply(lambda row: row.month, 1)
-            # df_stamp['day'] = df_stamp.date.apply(lambda row: row.day, 1)
-            # df_stamp['weekday'] = df_stamp.date.apply(lambda row: row.weekday(), 1)
-            # df_stamp['hour'] = df_stamp.date.apply(lambda row: row.hour, 1)
             df_stamp['minute'] = df_stamp.date.apply(lambda row: row.minute, 1)
             df_stamp['second'] = df_stamp.date.apply(lambda row: row.second, 1)
             data_stamp = df_stamp.drop(columns=['date']).values
@@ -262,7 +264,7 @@ class Dataset_CLS_encoded(Dataset):
         return self.scaler.inverse_transform(data)
 
 
-class Dataset_CLS_clean(Dataset):
+class Dataset_CLS_manual(Dataset):
     def __init__(self, root_path,
                  subjects=[1, 2, 3, 4], 
                  cols=None,
@@ -479,10 +481,8 @@ class Dataset_IMP_encoded(Dataset):
         df_stamp = df_raw[['date']][border1:border2]
         df_stamp['date'] = pd.to_datetime(df_stamp.date)
         if self.timeenc == 0:
-            df_stamp['month'] = df_stamp.date.apply(lambda row: row.month, 1)
-            df_stamp['day'] = df_stamp.date.apply(lambda row: row.day, 1)
-            df_stamp['weekday'] = df_stamp.date.apply(lambda row: row.weekday(), 1)
-            df_stamp['hour'] = df_stamp.date.apply(lambda row: row.hour, 1)
+            df_stamp['minute'] = df_stamp.date.apply(lambda row: row.minute, 1)
+            df_stamp['second'] = df_stamp.date.apply(lambda row: row.second, 1)
             data_stamp = df_stamp.drop(['date'], 1).values
         elif self.timeenc == 1:
             data_stamp = time_features(pd.to_datetime(df_stamp['date'].values), freq=self.freq)
@@ -597,12 +597,8 @@ class Dataset_IMP_Pred_encoded(Dataset):
         df_stamp.date = list(tmp_stamp.date.values) + list(pred_dates[1:])
         self.future_dates = list(pred_dates[1:])
         if self.timeenc == 0:
-            df_stamp['month'] = df_stamp.date.apply(lambda row: row.month, 1)
-            df_stamp['day'] = df_stamp.date.apply(lambda row: row.day, 1)
-            df_stamp['weekday'] = df_stamp.date.apply(lambda row: row.weekday(), 1)
-            df_stamp['hour'] = df_stamp.date.apply(lambda row: row.hour, 1)
             df_stamp['minute'] = df_stamp.date.apply(lambda row: row.minute, 1)
-            df_stamp['minute'] = df_stamp.minute.map(lambda x: x // 15)
+            df_stamp['second'] = df_stamp.date.apply(lambda row: row.second, 1)
             data_stamp = df_stamp.drop(['date'], 1).values
         elif self.timeenc == 1:
             data_stamp = time_features(pd.to_datetime(df_stamp['date'].values), freq=self.freq)

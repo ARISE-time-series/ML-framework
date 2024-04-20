@@ -9,7 +9,7 @@ data:
 
 model: 
   name: Transformer
-  task_name: forecast
+  task_name: imputation
   seq_len: 64
   pred_len: 64
   label_len: 4
