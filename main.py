@@ -8,6 +8,7 @@ import torch
 
 from exp.classification import Exp_Classification
 from exp.imputation import Exp_Imputation
+from exp.forecast import Exp_Forecast
 
 
 if __name__ == '__main__':
@@ -31,6 +32,8 @@ if __name__ == '__main__':
         exp = Exp_Imputation(config)
     elif config.model.task_name == 'classification':
         exp = Exp_Classification(config)
+    elif config.model.task_name == 'forecast':
+        exp = Exp_Forecast(config)
     else:
         raise ValueError(f'Invalid task name: {config.model.task_name}')
 
