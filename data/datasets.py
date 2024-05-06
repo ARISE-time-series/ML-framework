@@ -55,27 +55,39 @@ def rm_power_freq(data, freq=60):
 
 
 class EMGDataset(Dataset):
-    def __init__(self, root, subject_list, activities, transform=None):
+    def __init__(self, root, subject_list, activities,
+                 extra_files=None):
         self.root = root
         self.df_list = []
-        self.mean = 2.5
-        self.std = 0.123
         self.sample_freq = 500
+
+        self.borders = [0]
         for subject_id in subject_list:
             for act_id, act in activities.items():
                 print(f'Loading Subject {subject_id} {act} EMG data...')
-                file_path = os.path.join(root, f'Subject {subject_id}_cleaned', f'{act_id+1}_{act} EMG.xlsx')
-                df = pd.read_excel(file_path, sheet_name=None)
-                df = pd.concat(df.values(), ignore_index=True)
-                df = truncate(df)
+                file_path = os.path.join(root, f'Subject-{subject_id}-{act_id+1}-{act}-EMG.csv')
+                df = pd.read_csv(file_path)
+                num_seconds = int(df['Time (Seconds)'].max())
+                df = truncate(df, threshold=num_seconds)
                 self.df_list.append(df)
+                self.borders.append(self.borders[-1] + num_seconds)
+        
+        if extra_files:
+            for file_path in extra_files:
+                print(f'Loading extra EMG data from {file_path}...')
+                df = pd.read_csv(file_path)
+                num_seconds = int(df['Time (Seconds)'].max())
+                df = truncate(df, threshold=num_seconds)
+                self.df_list.append(df)
+                self.borders.append(self.borders[-1] + num_seconds)
 
     def __len__(self):
-        return len(self.df_list) * 3600
+        return self.borders[-1]
 
     def __getitem__(self, idx):
-        df_id = idx // 3600
-        seg_id = idx % 3600
+        df_id = np.searchsorted(self.borders, idx, side='right') - 1
+        seg_id = idx - self.borders[df_id]
+
         df = self.df_list[df_id]
         seg = df.loc[df['Time (Seconds)'].between(seg_id, seg_id + 1)]
         clean_seg = rm_power_freq(seg['ECG Raw Data'].values)
@@ -83,15 +95,11 @@ class EMGDataset(Dataset):
             out = np.pad(clean_seg, (0, self.sample_freq - clean_seg.shape[0]), 'edge')
         else:
             out = clean_seg[:self.sample_freq]
-        out = (out - self.mean) / self.std
         return torch.from_numpy(out).float().reshape(1, -1)
-
-    def unnormalize(self, data):
-        return data * self.std + self.mean
     
 
 class PulseData(Dataset):
-    def __init__(self, root, subject_list, activities, transform=None):
+    def __init__(self, root, subject_list, activities, extra_files=None):
         self.root = root
         self.df_list = []
         self.mean = 0.5
@@ -101,20 +109,26 @@ class PulseData(Dataset):
         for subject_id in subject_list:
             for act_id, act in activities.items():
                 print(f'Loading Subject {subject_id} {act} Pulse data...')
-                file_path = os.path.join(root, f'Subject {subject_id}_cleaned', f'{act_id+1}_{act} Pulse data.xlsx')
-                df = pd.read_excel(file_path, sheet_name=None)
-                df = pd.concat(df.values(), ignore_index=True)
-                num_seconds = int(df['Time'].max())
+                file_path = os.path.join(root, f'Subject-{subject_id}-{act_id+1}-{act}-Pulse_data.csv')
+                df = pd.read_csv(file_path)
+                num_seconds = int(df['Time'].max()) - 1
+                df = truncate(df, feat='Time', threshold=num_seconds)
+                self.df_list.append(df)
+                self.borders.append(self.borders[-1] + num_seconds)
+
+        if extra_files:
+            for file_path in extra_files:
+                print(f'Loading extra Pulse data from {file_path}...')
+                df = pd.read_csv(file_path)
+                num_seconds = int(df['Time'].max()) - 1
                 df = truncate(df, feat='Time', threshold=num_seconds)
                 self.df_list.append(df)
                 self.borders.append(self.borders[-1] + num_seconds)
                 
-
     def __len__(self):
         return self.borders[-1]
 
     def __getitem__(self, idx):
-
         df_id = np.searchsorted(self.borders, idx, side='right') - 1
         seg_id = idx - self.borders[df_id]
         df = self.df_list[df_id]
