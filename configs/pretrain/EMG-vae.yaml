@@ -8,8 +8,8 @@ data:
   
 model:
   name: vae
-  num_modes: 250
-  layers: [256, 256, 256, 64]
+  num_modes: 236
+  layers: [256, 256, 128, 32]
 
 train:
   lr: 0.0002
@@ -19,10 +19,10 @@ train:
   save_freq: 5
   log_freq: 200
   weight_decay: 0.0
-  kl_weight: 0.001
+  kl_weight: 0.01
 
 log:
   project: fatigue
   entity: hzzheng
-  group: EMG-vae-250-extra
-  tag: extra-data
+  group: EMG-vae236-32-extra
+  tag: vae236-32-XL-kl0.01

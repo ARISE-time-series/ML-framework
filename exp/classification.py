@@ -142,6 +142,8 @@ class Exp_Classification(Exp_Basic):
             early_stopping(-val_accuracy, self.model, path)
             if early_stopping.early_stop:
                 print("Early stopping")
+                best_acc = -early_stopping.val_loss_min
+                print(f'Best validation accuracy: {best_acc}')
                 break
             if (epoch + 1) % 5 == 0:
                 adjust_learning_rate(model_optim, (epoch + 1) // 5, self.config.train)

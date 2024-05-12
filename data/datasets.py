@@ -205,8 +205,8 @@ class Dataset_CLS_encoded(Dataset):
 
     def __read_data__(self, subject_id, act):
         datapath = os.path.join(self.root_path, f'Subject_{subject_id}-cleaned-{act}.csv')
-        emg_path = os.path.join(self.root_path, self.encode_dir, f'Subject_{subject_id}-cleaned-{act}-EMG.csv')
-        pulse_path = os.path.join(self.root_path, self.encode_dir, f'Subject_{subject_id}-cleaned-{act}-Pulse.csv')
+        emg_path = os.path.join(self.encode_dir, f'Subject_{subject_id}-cleaned-{act}-EMG.csv')
+        pulse_path = os.path.join(self.encode_dir, f'Subject_{subject_id}-cleaned-{act}-Pulse.csv')
         df_raw = pd.read_csv(datapath)
         '''
         df_raw.columns: ['date', ...(other features), target feature]
