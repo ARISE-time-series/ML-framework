@@ -1,6 +1,7 @@
 data:
   feature: Pulse
-  root: ../data/fatigue
+  root: ../data/emg-pulse
+  extra_dir: ../data/extra/pulse
   subject_list: [1, 2, 3, 4, 5, 6, 7, 8]
   activities: {0: 'Stroop', 1: 'VR', 2: 'Hand grip', 3: 'Biking'}
   encode_list: [1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -8,11 +9,12 @@ data:
 model:
   name: vae
   num_modes: 32
-  layers: [32, 16]
+  layers: [32, 32, 16]
 
 train:
-  lr: 0.0001
-  batch_size: 64
+  lr: 0.0005
+  lr_min: 0.000001
+  batch_size: 256
   epochs: 60
   save_freq: 5
   log_freq: 200
@@ -22,5 +24,5 @@ train:
 log:
   project: fatigue
   entity: hzzheng
-  group: Pulse-encoder-vae
-  tag: v2
+  group: Pulse-encoder-vae-extra
+  tag: extra-data

@@ -42,14 +42,22 @@ def main(args):
     ckpt_dir = os.path.join(exp_dir, "checkpoints")
     os.makedirs(ckpt_dir, exist_ok=True)
 
+    if config.data.extra_dir != 'None':
+        # load extra data
+        files = os.listdir(config.data.extra_dir)
+        extra_files = [os.path.join(config.data.extra_dir, file) for file in files if file.endswith('.csv')]
+    else:
+        extra_files = None
     # load data
     if config.data.feature == "EMG":
         train_dataset = EMGDataset(
-            config.data.root, subject_list=subject_list, activities=activities
+            config.data.root, subject_list=subject_list, activities=activities,
+            extra_files=extra_files
         )
     elif config.data.feature == "Pulse":
         train_dataset = PulseData(
-            config.data.root, subject_list=subject_list, activities=activities
+            config.data.root, subject_list=subject_list, activities=activities, 
+            extra_files=extra_files
         )
 
     print(f"Loaded: {len(train_dataset)} training samples.")
@@ -58,8 +66,9 @@ def main(args):
         train_dataset,
         batch_size=batch_size,
         shuffle=True,
-        num_workers=4,
+        num_workers=8,
         drop_last=True,
+        pin_memory=True
     )
     num_batches = len(train_loader)
     # build model
@@ -69,9 +78,10 @@ def main(args):
         model = AE(num_modes=config.model.num_modes, layers=config.model.layers)
     model = model.to(device)
 
+    num_epochs = config.train.epochs
     # optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=config.train.lr, weight_decay=config.train.weight_decay)
-
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs * num_batches, eta_min=1e-6)
     # set up wandb
     if args.use_wandb:
         wandb.init(
@@ -104,8 +114,9 @@ def main(args):
 
             loss.backward()
 
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 2.0)
             optimizer.step()
+            scheduler.step()
             
             avg_loss += loss.item()
             avg_recon_loss += recon_loss.item()

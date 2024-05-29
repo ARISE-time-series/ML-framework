@@ -11,8 +11,6 @@ import numpy as np
 _feat_list = ['Chem', 'GSR', 'Temp']
 
 
-
-
 def main(args):
     for i in range(args.num_subjects):
         subject_id = i + 1

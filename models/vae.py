@@ -16,9 +16,31 @@ class MLP(nn.Module):
             x = self.act(layer(x))
         x = self.layers[-1](x)
         return x
-    
 
 class Encoder(nn.Module):
+    def __init__(self, in_chan, layers=[256, 128, 32]):
+        super().__init__()
+        self.in_chan = in_chan
+        self.mlp = MLP([in_chan] + layers)
+    
+    def forward(self, x):
+        # x: (batch_size, in_channels, seq_len)
+        # x: (batch_size, in_channels)
+        out = self.mlp(x)
+        # out: (batch_size, in_chan, 16)
+        return out
+
+class Decoder(nn.Module):
+    def __init__(self, out_chan, layers=[32, 128, 256]):
+        super().__init__()
+        self.out_chan = out_chan
+        self.mlp = MLP(layers + [out_chan])
+    
+    def forward(self, x):
+        pass
+    
+
+class FourierEncoder(nn.Module):
     def __init__(self, num_modes=192, layers=[256, 128, 32]):
         super().__init__()
         self.num_modes = num_modes
@@ -38,7 +60,7 @@ class Encoder(nn.Module):
         return out
 
 
-class Decoder(nn.Module):
+class FourierDecoder(nn.Module):
     def __init__(self, num_modes=192, layers=[32, 128, 256]):
         super().__init__()
         self.num_modes = num_modes
@@ -58,12 +80,17 @@ class Decoder(nn.Module):
     
 
 class AE(nn.Module):
-    def __init__(self, num_modes=192, layers=[256, 128, 32]):
+    def __init__(self, num_modes=192, layers=[256, 128, 32], 
+                 model_type='fourier'):
         super().__init__()
         self.num_modes = num_modes
-        self.encoder = Encoder(num_modes, layers)
-        self.decoder = Decoder(num_modes, list(reversed(layers)))
-    
+        if model_type == 'fourier':
+            self.encoder = FourierEncoder(num_modes, layers)
+            self.decoder = FourierDecoder(num_modes, list(reversed(layers)))
+        else:
+            self.encoder = Encoder(num_modes, layers)
+            self.decoder = Decoder(num_modes, list(reversed(layers)))
+
     def forward(self, x):
         # x: (batch_size, in_channels, seq_len)
         seq_len = x.shape[-1]
@@ -81,14 +108,19 @@ class AE(nn.Module):
 
 
 class VAE(nn.Module):
-    def __init__(self, num_modes=192, layers=[256, 128, 32]):
+    def __init__(self, num_modes=192, layers=[256, 128, 32], 
+                 model_type='fourier'):
         super().__init__()
         self.num_modes = num_modes
         enc_layers = layers[:-1] + [layers[-1] * 2]
         dec_layers = list(reversed(layers))
-        self.encoder = Encoder(num_modes, layers=enc_layers)
-        self.decoder = Decoder(num_modes, layers=dec_layers)
-    
+        if model_type == 'fourier':
+            self.encoder = FourierEncoder(num_modes, layers=enc_layers)
+            self.decoder = FourierDecoder(num_modes, layers=dec_layers)
+        else:
+            self.encoder = Encoder(num_modes, layers=enc_layers)
+            self.decoder = Decoder(num_modes, layers=dec_layers)
+            
     def reprameterization(self, mean, logvar):
         noise = torch.randn_like(mean)
         logvar = torch.clamp(logvar, -30.0, 20.0)
