@@ -398,6 +398,7 @@ class Dataset_IMP_encoded(Dataset):
     def __init__(self, root_path,
                  subjects=[1, 2, 3, 4], 
                  cols=None,
+                 encode_dir=None,   # path to EMG and Pulse clean data
                  flag='train', size=None,
                  scale=False, 
                  embedding=None,
@@ -405,6 +406,7 @@ class Dataset_IMP_encoded(Dataset):
         # size [seq_len, label_len, pred_len]
         # info
         self.cols = cols
+        self.encode_dir = encode_dir
         self.subject_list = subjects
         self.activities = ['Biking', 'VR', 'Hand grip', 'Stroop']
         if size == None:
