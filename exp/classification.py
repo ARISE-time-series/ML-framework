@@ -1,6 +1,6 @@
 from data.dataloaders import get_loader
 from .basic import Exp_Basic
-from models import Transformer
+from models import Transformer, iTransformer
 from utils.helper import EarlyStopping, adjust_learning_rate, cal_accuracy
 
 from sklearn import metrics
@@ -30,6 +30,7 @@ class Exp_Classification(Exp_Basic):
     def _build_model(self):
         model_dict = {
             'Transformer': Transformer,
+            'iTransformer': iTransformer
         }
         model = model_dict[self.config.model.name].Model(self.config.model).float()
 
