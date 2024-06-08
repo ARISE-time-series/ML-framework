@@ -60,7 +60,7 @@ def main(args):
     subject_list = config.data.encode_list
     activities = config.data.activities
     
-    outdir = os.path.join(args.outdir, f'{config.model.name}-{config.log.tag}')
+    outdir = args.outdir
     os.makedirs(outdir, exist_ok=True)
     figdir = os.path.join('figs', config.data.feature, f'{config.model.name}-{config.model.num_modes}')
     os.makedirs(figdir, exist_ok=True)

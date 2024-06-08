@@ -1,28 +1,28 @@
 data:
   feature: EMG
-  root: ../data/emg-pulse
-  extra_dir: ../data/extra/emg
-  subject_list: [1, 2, 3, 4, 6, 7, 8]
+  root: ../fft-data/emg-pulse
+  extra_dir: ../fft-data/extra
+  subject_list: [1, 2, 3, 4, 6, 7, 8, 9]
   activities: {0: 'Stroop', 1: 'VR', 2: 'Hand grip', 3: 'Biking'}
   encode_list: [1, 2, 3, 4, 5, 6, 7, 8, 9]
   
 model:
   name: vae
-  num_modes: 236
-  layers: [256, 256, 128, 32]
+  num_modes: 250
+  layers: [256, 256, 128, 64]
 
 train:
-  lr: 0.0002
-  lr_min: 0.000001
+  lr: 0.0001
+  lr_min: 0.00001
   batch_size: 256
-  epochs: 61
+  epochs: 101
   save_freq: 5
   log_freq: 200
   weight_decay: 0.0
-  kl_weight: 0.01
+  kl_weight: 0.005
 
 log:
   project: fatigue
   entity: hzzheng
-  group: EMG-vae236-32-extra
-  tag: vae236-32-XL-kl0.01
+  group: EMG-vae236-64-extra-v2
+  tag: vae236-64-XL-v2
