@@ -109,7 +109,7 @@ class Model(nn.Module):
         dec_out = self.projection(enc_out)
         return dec_out
 
-    def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec,
+    def forward(self, x_enc, x_mark_enc, x_dec=None, x_mark_dec=None,
                 enc_self_mask=None, dec_self_mask=None, dec_enc_mask=None):
 
         if self.task_name == 'classification':

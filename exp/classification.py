@@ -14,9 +14,11 @@ import os
 import time
 from omegaconf import OmegaConf
 
+import shap
 import warnings
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 import wandb
 
@@ -190,6 +192,13 @@ class Exp_Classification(Exp_Basic):
         predictions = torch.argmax(probs, dim=1).cpu().numpy()  # (total_samples,) int class index for each sample
         trues = trues.flatten().cpu().numpy()
         accuracy = cal_accuracy(predictions, trues)
+        # save to file 
+        activities = ['Biking', 'VR', 'Hand grip', 'Stroop']
+        data_dict = {'labels': trues}
+        for i, act in enumerate(activities):
+            data_dict[act] = probs[:, i].cpu().numpy()
+        df = pd.DataFrame(data_dict)
+        df.to_csv(os.path.join(folder_path, 'probsnlabel.csv'), index=False)
 
         print('accuracy:{}'.format(accuracy))
         file_name='result_classification.txt'
@@ -197,12 +206,94 @@ class Exp_Classification(Exp_Basic):
 
         f.write('accuracy:{}'.format(accuracy))
         f.write('\n')
-        f.write('\n')
         f.close()
-        activities = ['Biking', 'VR', 'Hand grip', 'Stroop']
+        
         subject = self.config.data.test_subjects[0]
         confusion_mat = metrics.confusion_matrix(trues, predictions)
         cm_display = metrics.ConfusionMatrixDisplay(confusion_matrix=confusion_mat, display_labels=activities)
         cm_display.plot()
         plt.savefig(os.path.join(folder_path, f'subject_{subject}-confusion_matrix.png'))
         return
+
+    def explain(self, exp_dir, num_background_batch=10, num_test_batch=2):
+        ckpt_path = os.path.join(exp_dir, 'checkpoint.pt')
+
+        test_loader = self._get_data(flag='test')
+        
+        print('loading model')
+        self.model.load_state_dict(torch.load(ckpt_path))
+
+        folder_path = os.path.join(exp_dir, 'results')
+
+        os.makedirs(folder_path, exist_ok=True)
+
+        self.model.eval()
+        background = []
+        back_mask = []
+        x_test = []
+        x_test_mask = []
+        with torch.no_grad():
+            for i, (batch_x, label, padding_mask) in enumerate(test_loader):
+                batch_x = batch_x.float().to(self.device)
+                padding_mask = padding_mask.float().to(self.device)
+                label = label.to(self.device)
+
+                if i < num_background_batch:
+                    background.append(batch_x)
+                    back_mask.append(padding_mask)
+                elif i >= num_background_batch and i < num_background_batch + num_test_batch:
+                    x_test.append(batch_x)
+                    x_test_mask.append(padding_mask)
+
+        background = torch.cat(background, 0)
+        back_mask = torch.cat(back_mask, 0)
+        x_test = torch.cat(x_test, 0)
+        x_test_mask = torch.cat(x_test_mask, 0)
+        exp = shap.GradientExplainer(self.model, [background, back_mask])
+        # exp = shap.DeepExplainer(self.model, [background, back_mask])
+        # shap_values = exp.shap_values([x_test, x_test_mask], ranked_outputs=1, check_additivity=False)
+        shap_values = exp.shap_values([x_test, x_test_mask], ranked_outputs=1, nsamples=320)
+        shap_val = shap_values[0][0]
+        print(shap_val)
+        np.save(os.path.join(folder_path, 'shap_values-grad.npy'), shap_val)
+    
+    def kernel_explain(self, exp_dir, num_background_batch=5, num_test_batch=2):
+        ckpt_path = os.path.join(exp_dir, 'checkpoint.pt')
+
+        test_loader = self._get_data(flag='test')
+        
+        print('loading model')
+        self.model.load_state_dict(torch.load(ckpt_path))
+
+        folder_path = os.path.join(exp_dir, 'results')
+
+        os.makedirs(folder_path, exist_ok=True)
+
+        self.model.eval()
+        background = []
+        back_mask = []
+        x_test = []
+        x_test_mask = []
+        with torch.no_grad():
+            for i, (batch_x, label, padding_mask) in enumerate(test_loader):
+                batch_x = batch_x.float().to(self.device)
+                padding_mask = padding_mask.float().to(self.device)
+                label = label.to(self.device)
+
+                if i < num_background_batch:
+                    background.append(batch_x)
+                    back_mask.append(padding_mask)
+                elif i >= num_background_batch and i < num_background_batch + num_test_batch:
+                    x_test.append(batch_x)
+                    x_test_mask.append(padding_mask)
+
+        background = torch.cat(background, 0)
+        back_mask = torch.cat(back_mask, 0)
+        x_test = torch.cat(x_test, 0)
+        x_test_mask = torch.cat(x_test_mask, 0)
+
+        exp = shap.KernelExplainer(self.model, [background, back_mask])
+        shap_values = exp.shap_values([x_test, x_test_mask], check_additivity=False)
+        shap_val = shap_values[0]
+        print(shap_val)
+        np.save(os.path.join(folder_path, 'shap_values.npy'), shap_val)

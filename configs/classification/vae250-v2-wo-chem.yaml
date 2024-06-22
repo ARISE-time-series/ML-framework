@@ -22,7 +22,7 @@ model:
   c_out: 1
   d_model: 512
   n_heads: 8      # number of heads
-  e_layers: 3     # encoder layers
+  e_layers: 4     # encoder layers
   d_layers: 1     # decoder layers
   d_ff: 2048      # dimension of fcn
   factor: 1       # attention factor
@@ -34,8 +34,8 @@ model:
 
 train:
   epochs: 30
-  batch_size: 64
-  patience: 10
+  batch_size: 32
+  patience: 15
   lr: 0.0001
   lradj: type1
   weight_decay: 0.0001
