@@ -28,7 +28,7 @@ if __name__ == '__main__':
     torch.manual_seed(args.seed)
 
     config = OmegaConf.load(args.config)
-    if config.model.task_name == 'imputation' or config.model.task_name == 'forecast':
+    if config.model.task_name == 'imputation':
         exp = Exp_Imputation(config)
     elif config.model.task_name == 'classification':
         exp = Exp_Classification(config)
@@ -47,6 +47,7 @@ if __name__ == '__main__':
     if args.test:
         if config.model.task_name == 'classification':     
             exp.eval(exp_dir)
+            exp.explain(exp_dir)
         else:
             for subject in config.data.test_subjects:
                 for act in config.data.test_acts:
@@ -55,5 +56,5 @@ if __name__ == '__main__':
     else:
         config_path = os.path.join(exp_dir, 'config.yaml')
         OmegaConf.save(config, config_path)
-        exp.train(exp_dir, eval=True, use_wandb=args.use_wandb)
+        exp.train(exp_dir, eval=True, mixup=config.train.mixup, use_wandb=args.use_wandb)
 

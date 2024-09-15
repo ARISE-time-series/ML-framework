@@ -1,10 +1,10 @@
 data:
   feature: Pulse
-  root: ../fft-data/emg-pulse
+  root: ../fft-data/vae-test
   extra_dir: ../fft-data/extra
   subject_list: [1, 2, 3, 4, 6, 7, 8]
-  activities: {0: 'Stroop', 1: 'VR', 2: 'Hand grip', 3: 'Biking'}
-  encode_list: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+  activities: {0: 'biking', 1: 'sleep', 2: 'walking', 3: 'running', 4: 'meditation', 5: 'music', 6: 'gaming', 7: 'weightlift'}
+  encode_list: [10]
 
 model:
   name: vae

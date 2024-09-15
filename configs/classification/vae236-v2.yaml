@@ -1,11 +1,12 @@
 data:
   type: encoded  # clean, raw, encoded
+  encode_dir: ../fft-data/vae-extra
   root_path: ../data/fatigue
-  train_subjects: [1, 2, 3, 4, 5, 6, 7, 8]
-  test_subjects: [9]
+  train_subjects: [6, 7, 8, 1, 2, 3, 4]
+  test_subjects: [5, 9]
   scale: False
   embedding: None
-  cols: ['date', 'Current (uAmps)', 'Temperature (°C)']
+  cols: ['Lactate', 'Na', 'K', 'Current (uAmps)', 'Temperature (°C)']
 
 model: 
   name: Transformer
@@ -16,12 +17,12 @@ model:
   label_len: 0
   embed_type: 0
   top_k: 5
-  enc_in: 34
+  enc_in: 53  # 32 + 16 + 5 = 53
   dec_in: 1
   c_out: 1
   d_model: 512
   n_heads: 8      # number of heads
-  e_layers: 2     # encoder layers
+  e_layers: 4     # encoder layers
   d_layers: 1     # decoder layers
   d_ff: 2048      # dimension of fcn
   factor: 1       # attention factor
@@ -33,15 +34,15 @@ model:
 
 train:
   epochs: 30
-  batch_size: 32
-  patience: 10
-  lr: 0.001
+  batch_size: 64
+  patience: 15
+  lr: 0.0002
   lradj: type1
-  weight_decay: 0.0001
+  weight_decay: 0.01
   log_every: 100
 
 log:
   project: fatigue
   group: classfication-learned
-  tag: train8test1-no-chem
+  tag: train7test59-vae236-v2
 

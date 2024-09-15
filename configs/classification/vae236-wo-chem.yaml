@@ -1,12 +1,12 @@
 data:
   type: encoded  # clean, raw, encoded
-  encode_dir: ../data/emg-pulse/vae-extra-data-kl0.01
+  encode_dir: ../fft-data/vae-extra
   root_path: ../data/fatigue
   train_subjects: [6, 7, 8, 1, 2, 3, 4]
   test_subjects: [5, 9]
   scale: False
   embedding: None
-  cols: ['Lactate', 'Na', 'K', 'Current (uAmps)', 'Temperature (°C)']
+  cols: ['Current (uAmps)', 'Temperature (°C)']
 
 model: 
   name: Transformer
@@ -17,7 +17,7 @@ model:
   label_len: 0
   embed_type: 0
   top_k: 5
-  enc_in: 53  # 32 + 16 + 5 = 85
+  enc_in: 50  # 32 + 16 + 2 = 53
   dec_in: 1
   c_out: 1
   d_model: 512
@@ -34,9 +34,9 @@ model:
 
 train:
   epochs: 30
-  batch_size: 32
+  batch_size: 64
   patience: 10
-  lr: 0.0001
+  lr: 0.0002
   lradj: type1
   weight_decay: 0.0001
   log_every: 100
@@ -44,5 +44,5 @@ train:
 log:
   project: fatigue
   group: classfication-learned
-  tag: train7test59-vaev3
+  tag: train7test59-vaev2-no-chem-test
 

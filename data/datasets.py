@@ -48,8 +48,11 @@ def rm_power_freq(data, freq=60):
     remove the powerline frequency
     '''
     fft_results = np.fft.rfft(data)
+    # freqs = [freq * i for i in range(1, fft_results.shape[0] // freq + 1)]
+    # for fr in freqs:
+        # fft_results[fr] = 0.0
     fft_results[freq] = 0.0
-
+    # fft_results[freq * 2] = 0.0
     filtered_signal = np.fft.irfft(fft_results)
     return filtered_signal
 
@@ -96,6 +99,9 @@ class EMGDataset(Dataset):
         else:
             out = clean_seg[:self.sample_freq]
         return torch.from_numpy(out).float().reshape(1, -1)
+
+    def unnormalize(self, data):
+        return data * 0.123 + 2.5
     
 
 class PulseData(Dataset):
@@ -460,21 +466,20 @@ class Dataset_IMP_encoded(Dataset):
 
     def __read_data__(self, subject_id, act):
         datapath = os.path.join(self.root_path, f'Subject_{subject_id}-cleaned-{act}.csv')
-        emg_path = os.path.join(self.root_path, 'Encoded', f'Subject_{subject_id}-cleaned-{act}-EMG.csv')
-        pulse_path = os.path.join(self.root_path, 'Encoded', f'Subject_{subject_id}-cleaned-{act}-Pulse.csv')
+        emg_path = os.path.join(self.encode_dir, f'Subject_{subject_id}-cleaned-{act}-EMG.csv')
+        pulse_path = os.path.join(self.encode_dir, f'Subject_{subject_id}-cleaned-{act}-Pulse.csv')
         df_raw = pd.read_csv(datapath)
         '''
         df_raw.columns: ['date', ...(other features), target feature]
         '''
         columns = self.cols if self.cols else df_raw.columns 
-        # ['date', 'Lactate', 'Na', 'K', 'Current (uAmps)', 'Temperature (°C)', 'Fatigue level']
-        df_raw = df_raw[columns]
-
+        # ['date', 'Current (uAmps)', 'Temperature (°C)', 'Fatigue level']
+        df_data = df_raw[columns]
+        
         border1 = 0
         border2 = len(df_raw)
-
-        cols_data = df_raw.columns[1:-1]    # remove date and target
-        df_data = df_raw[cols_data]
+        # apply median filter to all the columns
+        df_data = df_data.apply(lambda x: medfilt(x, kernel_size=5))
         if self.embedding == 'fourier':
             embeded_data = fourier_embedding(df_data.values, num_channels=8)
         else:
@@ -541,12 +546,15 @@ class Dataset_IMP_encoded(Dataset):
 
 class Dataset_IMP_Pred_encoded(Dataset):
     def __init__(self, root_path, 
+                 encode_dir=None,
                  size=None, flag='pred',
-                 subject=5, act='Biking',
+                 subject=5,
+                 cols=None, 
+                 act='Biking',
                  scale=False,
                  embedding=None, 
                  inverse=False, 
-                 timeenc=0, freq='h', cols=None):
+                 timeenc=0, freq='h'):
         # size [seq_len, label_len, pred_len]
         # info
         if size == None:
@@ -567,6 +575,7 @@ class Dataset_IMP_Pred_encoded(Dataset):
         self.freq = freq
         self.cols = cols
         self.root_path = root_path
+        self.encode_dir = encode_dir
 
         self.__read_data__(subject, act)
 
@@ -574,19 +583,20 @@ class Dataset_IMP_Pred_encoded(Dataset):
         datapath = os.path.join(self.root_path, f'Subject_{subject}-cleaned-{act}.csv')
         df_raw = pd.read_csv(datapath)
 
-        emg_path = os.path.join(self.root_path, 'Encoded', f'Subject_{subject}-cleaned-{act}-EMG.csv')
-        pulse_path = os.path.join(self.root_path, 'Encoded', f'Subject_{subject}-cleaned-{act}-Pulse.csv')
+        emg_path = os.path.join(self.encode_dir, f'Subject_{subject}-cleaned-{act}-EMG.csv')
+        pulse_path = os.path.join(self.encode_dir, f'Subject_{subject}-cleaned-{act}-Pulse.csv')
         '''
         df_raw.columns: ['date', ...(other features), target feature]
         '''
-        columns = ['date', 'Lactate', 'Na', 'K', 'Current (uAmps)', 'Temperature (°C)', 'Fatigue level']
-        df_raw = df_raw[columns]
+        columns = self.cols if self.cols else df_raw.columns 
+        # ['date', 'Current (uAmps)', 'Temperature (°C)', 'Fatigue level']
+        df_data = df_raw[columns]
 
         border1 = 0              # len(df_raw) - self.seq_len
         border2 = len(df_raw)
 
-        cols_data = df_raw.columns[1:-1]
-        df_data = df_raw[cols_data]
+        df_data = df_data.apply(lambda x: medfilt(x, kernel_size=5))
+
         if self.embedding == 'fourier':
             embeded_data = fourier_embedding(df_data.values, num_channels=8)
         else:
@@ -607,11 +617,12 @@ class Dataset_IMP_Pred_encoded(Dataset):
 
         tmp_stamp = df_raw[['date']][border1:border2]
         tmp_stamp['date'] = pd.to_datetime(tmp_stamp.date)
-        pred_dates = pd.date_range(tmp_stamp.date.values[-1], periods=self.pred_len + 1, freq=self.freq)
-
+        # pred_dates = pd.date_range(tmp_stamp.date.values[-1], periods=self.pred_len + 1, freq=self.freq)
+        
         df_stamp = pd.DataFrame(columns=['date'])
-        df_stamp.date = list(tmp_stamp.date.values) + list(pred_dates[1:])
-        self.future_dates = list(pred_dates[1:])
+        
+        df_stamp.date = list(tmp_stamp.date.values)# + list(pred_dates[1:])
+        # self.future_dates = list(pred_dates[1:])
         if self.timeenc == 0:
             df_stamp['minute'] = df_stamp.date.apply(lambda row: row.minute, 1)
             df_stamp['second'] = df_stamp.date.apply(lambda row: row.second, 1)

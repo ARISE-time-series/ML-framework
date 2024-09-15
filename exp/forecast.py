@@ -78,7 +78,7 @@ class Exp_Forecast(Exp_Basic):
         self.model.train()
         return total_loss
 
-    def train(self, path, eval=False, use_wandb=False):
+    def train(self, path, eval=False, mixup=0.0, use_wandb=False):
         train_loader = self._get_data(flag='train')
         vali_loader = self._get_data(flag='test')
 
@@ -177,17 +177,16 @@ class Exp_Forecast(Exp_Basic):
         with torch.no_grad():
             for i, (batch_x, target, batch_x_mark, batch_y_mark) in enumerate(test_loader):
                 if start_tokens is None:
-                    start_tokens = torch.ones([target.shape[0], self.config.model.label_len, target.shape[2]]).float().to(self.device)
+                    start_tokens = torch.zeros([target.shape[0], self.config.model.label_len, target.shape[2]]).float().to(self.device)
                 
                 batch_x = batch_x.float().to(self.device)
-                
                 target = target.float()
 
                 batch_x_mark = batch_x_mark.float().to(self.device)
                 batch_y_mark = batch_y_mark.float().to(self.device)
-
+                
                 # decoder input
-                dec_inp = torch.zeros([target.shape[0], self.config.model.pred_len, target.shape[2]]).float().to(self.device)
+                dec_inp = torch.zeros([target.shape[0], batch_x_mark.shape[1], target.shape[2]]).float().to(self.device)
                 dec_inp = torch.cat([start_tokens, dec_inp], dim=1).float().to(self.device)
                 # encoder - decoder
 

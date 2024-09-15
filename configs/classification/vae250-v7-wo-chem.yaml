@@ -1,12 +1,13 @@
 data:
   type: encoded  # clean, raw, encoded
-  encode_dir: ../fft-data/vae-extra-v2
-  root_path: ../data/fatigue
+  encode_dir: ../fft-data/vae-v7
+  root_path: ../data
   train_subjects: [6, 7, 8, 1, 2, 3, 4]
   test_subjects: [5, 9]
   scale: False
   embedding: None
   cols: ['Current (uAmps)', 'Temperature (°C)']
+  subset: 0.4
 
 model: 
   name: Transformer
@@ -27,7 +28,7 @@ model:
   d_ff: 2048      # dimension of fcn
   factor: 1       # attention factor
   embed: timeF    # timeF, fixed or learned
-  dropout: 0.5
+  dropout: 0.1
   activation: gelu
   output_attention: False
   freq: s
@@ -38,11 +39,11 @@ train:
   patience: 15
   lr: 0.0001
   lradj: type1
-  weight_decay: 0.0001
+  weight_decay: 0.0
   log_every: 100
+  mixup: 0.4
 
 log:
   project: fatigue
   group: classfication-learned
-  tag: train7test59-vae-extra-v2-nochem
-
+  tag: train1test59-vae-v7

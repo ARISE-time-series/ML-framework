@@ -1,21 +1,16 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+from .mlp import MLP
 
 
-class MLP(nn.Module):
-    def __init__(self, layers):
-        super().__init__()
-        self.act = F.leaky_relu
-        self.layers = nn.ModuleList(
-            [nn.Linear(layers[i], layers[i + 1]) for i in range(len(layers) - 1)]
-        )
-    
+class _Block(nn.Module):
+    def __init__(self, in_ch, out_ch):
+        self.fc1 = nn.Linear(in_ch, out_ch)
+        pass
+
     def forward(self, x):
-        for layer in self.layers[:-1]:
-            x = self.act(layer(x))
-        x = self.layers[-1](x)
-        return x
+        pass
+
 
 class Encoder(nn.Module):
     def __init__(self, in_chan, layers=[256, 128, 32]):

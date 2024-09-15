@@ -1,6 +1,6 @@
 from data.dataloaders import get_loader
 from .basic import Exp_Basic
-from models import Transformer, iTransformer
+from models import Transformer, iTransformer, mlp
 from utils.helper import EarlyStopping, adjust_learning_rate, cal_accuracy
 
 from sklearn import metrics
@@ -25,6 +25,23 @@ import wandb
 warnings.filterwarnings('ignore')
 
 
+def mixup_data(x, mask_x, label, alpha=0.0, num_classes=4):
+    batch_size = x.shape[0]
+    if alpha > 0:
+        lam = np.random.beta(alpha, alpha)
+        index = torch.arange(-1, batch_size - 1)
+        mixed_x = lam * x + (1 - lam) * x[index, :]
+        mixed_mask_x = lam * mask_x + (1 - lam) * mask_x[index, :]
+        # mixup labels
+        mix_label = nn.functional.one_hot(label, num_classes=num_classes)
+        mix_label = lam * mix_label + (1 - lam) * mix_label[index, :]
+    else:
+        mixed_x = x
+        mixed_mask_x = mask_x
+        mix_label = nn.functional.one_hot(label, num_classes=num_classes)
+    return mixed_x, mixed_mask_x, mix_label.float()
+
+
 class Exp_Classification(Exp_Basic):
     def __init__(self, config):
         super(Exp_Classification, self).__init__(config)
@@ -32,7 +49,8 @@ class Exp_Classification(Exp_Basic):
     def _build_model(self):
         model_dict = {
             'Transformer': Transformer,
-            'iTransformer': iTransformer
+            'iTransformer': iTransformer, 
+            'MLP': mlp
         }
         model = model_dict[self.config.model.name].Model(self.config.model).float()
 
@@ -85,7 +103,7 @@ class Exp_Classification(Exp_Basic):
         return total_loss, accuracy
     
     
-    def train(self, path, eval=False, use_wandb=False):
+    def train(self, path, eval=False, mixup=0.4, use_wandb=False):
         train_loader = self._get_data(flag='train')
         vali_loader = self._get_data(flag='test')
 
@@ -117,9 +135,10 @@ class Exp_Classification(Exp_Basic):
                 batch_x = batch_x.float().to(self.device)
                 padding_mask = padding_mask.float().to(self.device)
                 label = label.to(self.device)
+                batch_x, padding_mask, label = mixup_data(batch_x, padding_mask, label, mixup)
 
                 outputs = self.model(batch_x, padding_mask, None, None)
-                loss = criterion(outputs, label.long().squeeze(-1))
+                loss = criterion(outputs, label)
                 train_loss.append(loss.item())
 
                 if (i + 1) % 100 == 0:
@@ -215,7 +234,7 @@ class Exp_Classification(Exp_Basic):
         plt.savefig(os.path.join(folder_path, f'subject_{subject}-confusion_matrix.png'))
         return
 
-    def explain(self, exp_dir, num_background_batch=10, num_test_batch=2):
+    def explain(self, exp_dir, num_background_batch=10, num_test_batch=20):
         ckpt_path = os.path.join(exp_dir, 'checkpoint.pt')
 
         test_loader = self._get_data(flag='test')
@@ -232,6 +251,7 @@ class Exp_Classification(Exp_Basic):
         back_mask = []
         x_test = []
         x_test_mask = []
+        test_preds = []
         with torch.no_grad():
             for i, (batch_x, label, padding_mask) in enumerate(test_loader):
                 batch_x = batch_x.float().to(self.device)
@@ -244,18 +264,23 @@ class Exp_Classification(Exp_Basic):
                 elif i >= num_background_batch and i < num_background_batch + num_test_batch:
                     x_test.append(batch_x)
                     x_test_mask.append(padding_mask)
+                    outputs = self.model(batch_x, padding_mask, None, None)
+                    preds = torch.argmax(outputs, dim=1)
+                    test_preds.append(preds)
 
         background = torch.cat(background, 0)
         back_mask = torch.cat(back_mask, 0)
         x_test = torch.cat(x_test, 0)
         x_test_mask = torch.cat(x_test_mask, 0)
+        test_preds = torch.cat(test_preds, 0)
         exp = shap.GradientExplainer(self.model, [background, back_mask])
         # exp = shap.DeepExplainer(self.model, [background, back_mask])
         # shap_values = exp.shap_values([x_test, x_test_mask], ranked_outputs=1, check_additivity=False)
-        shap_values = exp.shap_values([x_test, x_test_mask], ranked_outputs=1, nsamples=320)
+        shap_values = exp.shap_values([x_test, x_test_mask], ranked_outputs=1, nsamples=x_test.shape[0])
         shap_val = shap_values[0][0]
         print(shap_val)
         np.save(os.path.join(folder_path, 'shap_values-grad.npy'), shap_val)
+        np.save(os.path.join(folder_path, 'test_preds.npy'), test_preds.cpu().numpy())
     
     def kernel_explain(self, exp_dir, num_background_batch=5, num_test_batch=2):
         ckpt_path = os.path.join(exp_dir, 'checkpoint.pt')

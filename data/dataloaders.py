@@ -1,4 +1,4 @@
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 
 from .datasets import Dataset_CLS_encoded, Dataset_IMP_encoded, Dataset_IMP_Pred_encoded
 
@@ -64,11 +64,12 @@ def get_loader(config,
         data_kwargs['subjects'] = subject_list
         
     dataset = dataset_dict[task_name][config.data.type][flag](**data_kwargs)
-    
-    print(f'Loaded: {len(dataset)} {flag} samples.')
+    subset_ratio = config.data.subset if flag == 'train' else 1
+    subset = Subset(dataset, list(range(0, int(len(dataset) * subset_ratio))))
+    print(f'Loaded: {len(subset)} {flag} samples.')
 
     dataloader = DataLoader(
-        dataset,
+        subset,
         batch_size=batch_size,
         shuffle=shuffle,
         num_workers=4,

@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 
 
-_feat_list = ['Chem', 'GSR', 'Temp']
+_feat_list = ['GSR', 'Temp']
 
 
 def main(args):

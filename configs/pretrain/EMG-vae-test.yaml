@@ -1,10 +1,10 @@
 data:
   feature: EMG
-  root: ../fft-data/emg-pulse
+  root: ../fft-data/vae-test
   extra_dir: ../fft-data/extra
   subject_list: [1, 2, 3, 4, 6, 7, 8]
-  activities: {0: 'Stroop', 1: 'VR', 2: 'Hand grip', 3: 'Biking'}
-  encode_list: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+  activities: {0: 'biking', 1: 'sleep', 2: 'walking', 3: 'running', 4: 'meditation', 5: 'music', 6: 'gaming', 7: 'weightlift'}
+  encode_list: [10]
   
 model:
   name: vae
@@ -12,7 +12,7 @@ model:
   layers: [256, 256, 128, 64]
 
 train:
-  lr: 0.00005
+  lr: 0.0001
   lr_min: 0.000001
   batch_size: 256
   epochs: 101
@@ -20,10 +20,9 @@ train:
   log_freq: 200
   weight_decay: 0.0
   kl_weight: 0.005
-  freq_weight: 0.01
 
 log:
   project: fatigue
   entity: hzzheng
-  group: EMG-vae250-64-extra-v2
-  tag: fft-64-XL-v0
+  group: EMG-vae250-64-extra-v1
+  tag: fft-64-XL-v1
