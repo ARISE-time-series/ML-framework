@@ -237,7 +237,7 @@ class Exp_Classification(Exp_Basic):
     def explain(self, exp_dir, num_background_batch=10, num_test_batch=20):
         ckpt_path = os.path.join(exp_dir, 'checkpoint.pt')
 
-        test_loader = self._get_data(flag='test')
+        test_loader = self._get_data(flag='explain')
         
         print('loading model')
         self.model.load_state_dict(torch.load(ckpt_path))
@@ -261,12 +261,16 @@ class Exp_Classification(Exp_Basic):
                 if i < num_background_batch:
                     background.append(batch_x)
                     back_mask.append(padding_mask)
+                    print(f'Background label: {label}')
                 elif i >= num_background_batch and i < num_background_batch + num_test_batch:
                     x_test.append(batch_x)
                     x_test_mask.append(padding_mask)
                     outputs = self.model(batch_x, padding_mask, None, None)
                     preds = torch.argmax(outputs, dim=1)
                     test_preds.append(preds)
+                    # calculate accuracy
+                    acc = torch.sum(preds == label).float() / label.shape[0]
+                    print(f'Accuracy: {acc}')
 
         background = torch.cat(background, 0)
         back_mask = torch.cat(back_mask, 0)
@@ -278,14 +282,14 @@ class Exp_Classification(Exp_Basic):
         # shap_values = exp.shap_values([x_test, x_test_mask], ranked_outputs=1, check_additivity=False)
         shap_values = exp.shap_values([x_test, x_test_mask], ranked_outputs=1, nsamples=x_test.shape[0])
         shap_val = shap_values[0][0]
-        print(shap_val)
+        
         np.save(os.path.join(folder_path, 'shap_values-grad.npy'), shap_val)
         np.save(os.path.join(folder_path, 'test_preds.npy'), test_preds.cpu().numpy())
     
     def kernel_explain(self, exp_dir, num_background_batch=5, num_test_batch=2):
         ckpt_path = os.path.join(exp_dir, 'checkpoint.pt')
 
-        test_loader = self._get_data(flag='test')
+        test_loader = self._get_data(flag='explain')
         
         print('loading model')
         self.model.load_state_dict(torch.load(ckpt_path))

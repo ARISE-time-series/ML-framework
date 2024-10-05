@@ -2,6 +2,7 @@ exps
 wandb
 .vscode
 **/__pycache__/**
-debug.py
+debug*
 figs
 assets
+outputs

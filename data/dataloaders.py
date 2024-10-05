@@ -6,7 +6,8 @@ dataset_dict = {
     'classification': {
         'encoded': {
             'train': Dataset_CLS_encoded,
-            'test': Dataset_CLS_encoded
+            'test': Dataset_CLS_encoded, 
+            'explain': Dataset_CLS_encoded
         }
     },
     'imputation': {
@@ -23,6 +24,7 @@ dataset_dict = {
             'test': Dataset_IMP_encoded
         }, 
         'manual': {
+            
             
         } 
     }
@@ -42,7 +44,7 @@ def get_loader(config,
     size = [config.model.seq_len, config.model.label_len, config.model.pred_len]
     
     drop_last = True if flag == 'train' else False
-    shuffle = True if flag == 'train' else False
+    shuffle = True if flag == 'train' or flag == 'explain' else False
     batch_size = 1 if flag == 'pred' else config.train.batch_size
     freq = config.model.freq
     # batch_size = config.train.batch_size

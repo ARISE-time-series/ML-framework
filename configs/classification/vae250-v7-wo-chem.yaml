@@ -7,7 +7,7 @@ data:
   scale: False
   embedding: None
   cols: ['Current (uAmps)', 'Temperature (°C)']
-  subset: 0.4
+  subset: 0.3
 
 model: 
   name: Transformer
@@ -46,4 +46,4 @@ train:
 log:
   project: fatigue
   group: classfication-learned
-  tag: train1test59-vae-v7
+  tag: train30test59-vae-v7

@@ -1,7 +1,14 @@
 # Fatigue forecasting with transformers
 
-## Configuration file
-1. data.type: clean or raw. raw will  
+## Classification
+Train classifier,
+```bash
+python main.py --config configs/classification/vae250-v7-wo-chem.yaml
+```
+Evaluate classifier, 
+```bash
+
+```
 
 
 

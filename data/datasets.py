@@ -171,17 +171,12 @@ class Dataset_CLS_encoded(Dataset):
         self.activities = ['Biking', 'VR', 'Hand grip', 'Stroop']
         self.act2label = {key: value for value, key in enumerate(self.activities)}
         self.num_classes = len(self.activities)
-        if size == None:
-            self.seq_len = 24 * 4 * 4
-            self.label_len = 24 * 4
-            self.pred_len = 24 * 4
-        else:
-            self.seq_len = size[0]
-            self.label_len = size[1]
-            self.pred_len = size[2]
+        self.seq_len = size[0]
+        self.label_len = size[1]
+        self.pred_len = size[2]
         # init
-        flag = flag.lower()
-        assert flag in ['train', 'test', 'val']
+        # flag = flag.lower()
+        # assert flag in ['train', 'test', 'val']
 
         self.scale = scale
         self.embedding = embedding
@@ -429,14 +424,10 @@ class Dataset_IMP_encoded(Dataset):
         self.encode_dir = encode_dir
         self.subject_list = subjects
         self.activities = ['Biking', 'VR', 'Hand grip', 'Stroop']
-        if size == None:
-            self.seq_len = 24 * 4 * 4
-            self.label_len = 24 * 4
-            self.pred_len = 24 * 4
-        else:
-            self.seq_len = size[0]
-            self.label_len = size[1]
-            self.pred_len = size[2]
+
+        self.seq_len = size[0]
+        self.label_len = size[1]
+        self.pred_len = size[2]
         # init
         assert flag in ['train', 'test', 'val']
         assert self.seq_len == self.pred_len
