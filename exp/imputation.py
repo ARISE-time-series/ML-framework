@@ -78,16 +78,11 @@ class Exp_Imputation(Exp_Basic):
         self.model.train()
         return total_loss
 
-    def train(self, path, eval=False, use_wandb=False):
+    def train(self, path, eval=False):
         train_loader = self._get_data(flag='train')
         vali_loader = self._get_data(flag='test')
 
         os.makedirs(path, exist_ok=True)
-        if use_wandb:
-            wandb.init(project=self.config.log.project,
-                       group=self.config.log.group,
-                       config=OmegaConf.to_container(self.config))
-        
 
         time_now = time.time()
 
@@ -139,7 +134,7 @@ class Exp_Imputation(Exp_Basic):
             
             vali_loss = self.vali(vali_loader, criterion)
                 # test_loss = self.vali(test_data, test_loader, criterion)
-            if use_wandb:
+            if wandb.run is not None:
                 wandb.log({'train_loss': train_loss, 'vali_loss': vali_loss}, step=epoch)
 
             print("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f}".format(
@@ -153,7 +148,7 @@ class Exp_Imputation(Exp_Basic):
             
             if (epoch + 1) % 5 == 0:
                 adjust_learning_rate(model_optim, (epoch + 1) // 5, self.config.train)
-        if use_wandb:
+        if wandb.run is not None:
             wandb.finish()
         
         best_model_path = os.path.join(path, 'checkpoint.pt')

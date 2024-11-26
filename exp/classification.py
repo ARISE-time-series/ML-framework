@@ -1,7 +1,7 @@
 from data.dataloaders import get_loader
 from .basic import Exp_Basic
 from models import Transformer, iTransformer, mlp
-from utils.helper import EarlyStopping, adjust_learning_rate, cal_accuracy
+from utils.helper import EarlyStopping, adjust_learning_rate, cal_accuracy, count_parameters
 
 from sklearn import metrics
 
@@ -12,7 +12,6 @@ from torch import optim
 
 import os
 import time
-from omegaconf import OmegaConf
 
 import shap
 import warnings
@@ -53,7 +52,7 @@ class Exp_Classification(Exp_Basic):
             'MLP': mlp
         }
         model = model_dict[self.config.model.name].Model(self.config.model).float()
-
+        print('Model parameters:', count_parameters(model))
         return model
 
     def _get_data(self, flag):
@@ -103,15 +102,11 @@ class Exp_Classification(Exp_Basic):
         return total_loss, accuracy
     
     
-    def train(self, path, eval=False, mixup=0.4, use_wandb=False):
+    def train(self, path, eval=False, mixup=0.4, bandwidth=None):
         train_loader = self._get_data(flag='train')
         vali_loader = self._get_data(flag='test')
 
         os.makedirs(path, exist_ok=True)
-        if use_wandb:
-            wandb.init(project=self.config.log.project, 
-                       group=self.config.log.group, 
-                       config=OmegaConf.to_container(self.config))
 
         time_now = time.time()
 
@@ -156,7 +151,7 @@ class Exp_Classification(Exp_Basic):
             print("Epoch: {} cost time: {}".format(epoch + 1, time.time() - epoch_time))
             train_loss = np.average(train_loss)
             vali_loss, val_accuracy = self.vali(vali_loader, criterion)
-            if use_wandb:
+            if wandb.run is not None:
                 wandb.log({'train_loss': train_loss, 'vali_loss': vali_loss, 'vali_accuracy': val_accuracy}, step=epoch)
             print(
                 "Epoch: {0}, Steps: {1} | Train Loss: {2:.3f} Vali Loss: {3:.3f} Vali Acc: {4:.3f}"
@@ -169,8 +164,7 @@ class Exp_Classification(Exp_Basic):
                 break
             if (epoch + 1) % 5 == 0:
                 adjust_learning_rate(model_optim, (epoch + 1) // 5, self.config.train)
-        if use_wandb:
-            wandb.finish()
+
         best_model_path = os.path.join(path, 'checkpoint.pt')
         self.model.load_state_dict(torch.load(best_model_path))
         best_acc = -early_stopping.val_loss_min
@@ -282,7 +276,7 @@ class Exp_Classification(Exp_Basic):
         # shap_values = exp.shap_values([x_test, x_test_mask], ranked_outputs=1, check_additivity=False)
         shap_values = exp.shap_values([x_test, x_test_mask], ranked_outputs=1, nsamples=x_test.shape[0])
         shap_val = shap_values[0][0]
-        
+        np.save(os.path.join(folder_path, 'x_tests.npy'), x_test.cpu().numpy())
         np.save(os.path.join(folder_path, 'shap_values-grad.npy'), shap_val)
         np.save(os.path.join(folder_path, 'test_preds.npy'), test_preds.cpu().numpy())
     

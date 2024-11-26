@@ -57,13 +57,14 @@ def get_loader(config,
         'timeenc': timeenc,
         'freq': freq, 
         'scale': config.data.scale,
-        'embedding': config.data.embedding
+        'embedding': config.data.embedding, 
     }
     if (task_name == 'imputation' or task_name == 'forecast') and flag == 'pred':
         data_kwargs['subject'] = subject
         data_kwargs['act'] = act
     else:
         data_kwargs['subjects'] = subject_list
+        data_kwargs['acts'] = config.data.train_acts
         
     dataset = dataset_dict[task_name][config.data.type][flag](**data_kwargs)
     subset_ratio = config.data.subset if flag == 'train' else 1

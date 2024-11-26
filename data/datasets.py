@@ -156,6 +156,7 @@ class PulseData(Dataset):
 class Dataset_CLS_encoded(Dataset):
     def __init__(self, root_path,
                  subjects=[1, 2, 3, 4], 
+                 acts=['Biking', 'VR', 'Hand grip', 'Stroop'],
                  cols=None,
                  encode_dir='Encoded',
                  flag='train', 
@@ -168,7 +169,7 @@ class Dataset_CLS_encoded(Dataset):
         self.cols = cols
         self.encode_dir = encode_dir
         self.subject_list = subjects
-        self.activities = ['Biking', 'VR', 'Hand grip', 'Stroop']
+        self.activities = acts
         self.act2label = {key: value for value, key in enumerate(self.activities)}
         self.num_classes = len(self.activities)
         self.seq_len = size[0]
@@ -412,6 +413,7 @@ class Dataset_CLS_manual(Dataset):
 class Dataset_IMP_encoded(Dataset):
     def __init__(self, root_path,
                  subjects=[1, 2, 3, 4], 
+                 acts=['Biking', 'VR', 'Hand grip', 'Stroop'],
                  cols=None,
                  encode_dir=None,   # path to EMG and Pulse clean data
                  flag='train', size=None,
@@ -423,7 +425,7 @@ class Dataset_IMP_encoded(Dataset):
         self.cols = cols
         self.encode_dir = encode_dir
         self.subject_list = subjects
-        self.activities = ['Biking', 'VR', 'Hand grip', 'Stroop']
+        self.activities = acts
 
         self.seq_len = size[0]
         self.label_len = size[1]
