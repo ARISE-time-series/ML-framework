@@ -1,48 +1,48 @@
 data:
   type: encoded  # clean, raw, encoded
-  encode_dir: ../fft-data/vae-extra
-  root_path: ../data/fatigue
+  encode_dir: ../fft-data/vae-v7
+  root_path: ../data
   train_subjects: [6, 7, 8, 1, 2, 3, 4]
+  train_acts: ['Hand grip']
   test_subjects: [5, 9]
+  test_acts: ['Hand grip']
   scale: False
   embedding: None
   cols: ['Current (uAmps)', 'Temperature (°C)']
+  subset: 1.0
 
 model: 
   name: Transformer
-  task_name: classification
+  task_name: forecast
   num_classes: 4
   seq_len: 120
-  pred_len: 0
-  label_len: 0
+  pred_len: 120
+  label_len: 8
   embed_type: 0
   top_k: 5
-  enc_in: 50  # 32 + 16 + 2 = 53
+  enc_in: 82  # 64 + 16 + 5 = 85
   dec_in: 1
   c_out: 1
   d_model: 512
   n_heads: 8      # number of heads
-  e_layers: 2     # encoder layers
-  d_layers: 1     # decoder layers
+  e_layers: 4     # encoder layers
+  d_layers: 3     # decoder layers
   d_ff: 2048      # dimension of fcn
   factor: 1       # attention factor
   embed: timeF    # timeF, fixed or learned
-  dropout: 0.5
+  dropout: 0.02
   activation: gelu
   output_attention: False
   freq: s
 
 train:
-  epochs: 30
-  batch_size: 64
-  patience: 10
-  lr: 0.0002
+  epochs: 20
+  batch_size: 32
+  patience: 5
+  lr: 0.0001
   lradj: type1
-  weight_decay: 0.0001
+  weight_decay: 0.0
   log_every: 100
-
-log:
-  project: fatigue
-  group: classfication-learned
-  tag: train7test59-vaev2-no-chem-test
+  mixup: 0.5
+  bandwidth: 1.2
 

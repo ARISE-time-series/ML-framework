@@ -1,2 +1,1 @@
-python3 main.py --config configs/classification/vae236.yaml # train
-python3 main.py --config configs/classification/vae236.yaml --ckpt /path/to/checkpoint --test # test
+CUDA_VISIBLE_DEVICES=2 python main.py tag=ablation-train50 task=classification classification.data.subset=0.5

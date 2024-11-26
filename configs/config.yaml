@@ -1,0 +1,10 @@
+exp_dir: exps
+tag: d4e2-mixup-search
+test: False
+explain: False
+seed: 12345
+task: forecast
+wandb: False
+defaults: 
+  - forecast: vae250-v7
+  - classification: vae250-v7-wo-chem

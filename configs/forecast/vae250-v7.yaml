@@ -5,18 +5,19 @@ data:
   train_subjects: [6, 7, 8, 1, 2, 3, 4]
   train_acts: ['Biking', 'VR', 'Hand grip', 'Stroop']
   test_subjects: [5, 9]
+  test_acts: ['Biking', 'VR', 'Hand grip', 'Stroop']
   scale: False
   embedding: None
   cols: ['Current (uAmps)', 'Temperature (°C)']
-  subset: 0.3
+  subset: 1.0
 
 model: 
   name: Transformer
-  task_name: classification
+  task_name: forecast
   num_classes: 4
   seq_len: 120
-  pred_len: 0
-  label_len: 0
+  pred_len: 120
+  label_len: 8
   embed_type: 0
   top_k: 5
   enc_in: 82  # 64 + 16 + 5 = 85
@@ -25,27 +26,23 @@ model:
   d_model: 512
   n_heads: 8      # number of heads
   e_layers: 4     # encoder layers
-  d_layers: 1     # decoder layers
+  d_layers: 2     # decoder layers
   d_ff: 2048      # dimension of fcn
   factor: 1       # attention factor
   embed: timeF    # timeF, fixed or learned
-  dropout: 0.1
+  dropout: 0.02
   activation: gelu
   output_attention: False
   freq: s
 
 train:
-  epochs: 30
+  epochs: 20
   batch_size: 32
-  patience: 15
+  patience: 7
   lr: 0.0001
   lradj: type1
   weight_decay: 0.0
   log_every: 100
-  mixup: 0.4
-  bandwidth: 0.0
+  mixup: 0.6
+  bandwidth: 1.0
 
-log:
-  project: fatigue
-  group: classfication-learned
-  tag: train30test59-vae-v7

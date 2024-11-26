@@ -19,3 +19,6 @@ bash scripts/encode.sh
 
 
 ## Classification 
+
+## Hyperparameter sweep
+

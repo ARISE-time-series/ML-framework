@@ -1,0 +1,28 @@
+program: main.py
+project: fatigue
+name: fatigue-forecast-Stroop
+method: bayes
+metric:
+  goal: maximize
+  name: avg_acc
+parameters:
+  forecast.model.d_layers:
+    values: [1, 2, 3, 4]
+  forecast.model.dropout:
+    min: 0.0
+    max: 0.1
+  forecast.train.mixup: 
+    min: 0.1
+    max: 0.9
+  forecast.train.bandwidth:
+    min: 0.1
+    max: 5.0
+
+command:
+  - ${env}
+  - python
+  - ${program}
+  - forecast=vae250-Stroop
+  - tag=forecast-Stroop-search
+  - wandb=True
+  - ${args_no_hyphens}
