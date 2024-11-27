@@ -1,1 +1,1 @@
-CUDA_VISIBLE_DEVICES=2 python main.py tag=ablation-train50 task=classification classification.data.subset=0.5
+python main.py tag=train-best task=classification

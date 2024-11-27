@@ -1,5 +1,5 @@
-CUDA_VISIBLE_DEVICES=1 python main.py forecast=vae250-Biking tag=forecast-Biking-best forecast.model.d_layers=4 forecast.model.dropout=0.08101762186968295 forecast.train.bandwidth=1.1351408305181596 forecast.train.mixup=0.8996279310287609 test=True
-CUDA_VISIBLE_DEVICES=1 python main.py forecast=vae250-Stroop tag=forecast-Stroop-best forecast.model.d_layers=4 forecast.model.dropout=0.08807094382400112 forecast.train.bandwidth=3.6631782216040825 forecast.train.mixup=0.4790050457354743 test=True
 
-CUDA_VISIBLE_DEVICES=1 python main.py forecast=vae250-handgrip tag=forecast-handgrip-best forecast.model.d_layers=3 forecast.model.dropout=0.07488626864890517 forecast.train.bandwidth=4.90046657260325 forecast.train.mixup=0.8568668009726301 test=True
-CUDA_VISIBLE_DEVICES=1 python main.py forecast=vae250-VR tag=forecast-VR-best forecast.model.d_layers=2 forecast.model.dropout=0.08931784611398426 forecast.train.bandwidth=1.1305115046011558 forecast.train.mixup=0.7067242044483785 test=True
+python main.py forecast=vae250-Biking tag=forecast-Biking-best forecast.model.d_layers=4 forecast.model.dropout=0.08101762186968295 forecast.train.bandwidth=1.1351408305181596 forecast.train.mixup=0.8996279310287609
+python main.py forecast=vae250-Stroop tag=forecast-Stroop-best forecast.model.d_layers=4 forecast.model.dropout=0.08807094382400112 forecast.train.bandwidth=3.6631782216040825 forecast.train.mixup=0.4790050457354743
+python main.py forecast=vae250-handgrip tag=forecast-handgrip-best forecast.model.d_layers=3 forecast.model.dropout=0.07488626864890517 forecast.train.bandwidth=4.90046657260325 forecast.train.mixup=0.8568668009726301
+python main.py forecast=vae250-VR tag=forecast-VR-best forecast.model.d_layers=2 forecast.model.dropout=0.08931784611398426 forecast.train.bandwidth=1.1305115046011558 forecast.train.mixup=0.7067242044483785
