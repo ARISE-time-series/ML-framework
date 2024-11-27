@@ -5,6 +5,9 @@ import matplotlib.pyplot as plt
 
 plt.switch_backend('agg')
 
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
 
 def adjust_learning_rate(optimizer, epoch, args):
     # lr = args.learning_rate * (0.2 ** (epoch // 2))
