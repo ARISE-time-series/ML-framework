@@ -1,6 +1,6 @@
 from data.dataloaders import get_loader
 from .basic import Exp_Basic
-from models import Transformer, iTransformer, mlp
+from models import Transformer, iTransformer, mlp, lstm
 from utils.helper import EarlyStopping, adjust_learning_rate, cal_accuracy, count_parameters
 
 from sklearn import metrics
@@ -49,7 +49,8 @@ class Exp_Classification(Exp_Basic):
         model_dict = {
             'Transformer': Transformer,
             'iTransformer': iTransformer, 
-            'MLP': mlp
+            'MLP': mlp,
+            'LSTM': lstm
         }
         model = model_dict[self.config.model.name].Model(self.config.model).float()
         print('Model parameters:', count_parameters(model))
@@ -315,6 +316,7 @@ class Exp_Classification(Exp_Basic):
         x_test = torch.cat(x_test, 0)
         x_test_mask = torch.cat(x_test_mask, 0)
 
+        
         exp = shap.KernelExplainer(self.model, [background, back_mask])
         shap_values = exp.shap_values([x_test, x_test_mask], check_additivity=False)
         shap_val = shap_values[0]

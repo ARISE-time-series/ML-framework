@@ -23,10 +23,6 @@ dataset_dict = {
             'train': Dataset_IMP_encoded,
             'test': Dataset_IMP_encoded
         }, 
-        'manual': {
-            
-            
-        } 
     }
 }
 

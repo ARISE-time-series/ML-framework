@@ -42,7 +42,7 @@ def main(config):
     os.makedirs(root_dir, exist_ok=True)
     exp_dir = os.path.join(root_dir, f'{cfg.model.name}_'
                            f'seq{cfg.model.seq_len}_label{cfg.model.label_len}_pred{cfg.model.pred_len}_'
-                           f'bs{cfg.train.batch_size}_dm{cfg.model.d_model}_{config.tag}')
+                           f'bs{cfg.train.batch_size}_{config.tag}')
     os.makedirs(exp_dir, exist_ok=True)
 
     if config.test:

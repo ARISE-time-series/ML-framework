@@ -11,30 +11,27 @@ data:
   subset: 1.0
 
 model: 
-  name: MLP
+  name: SVM
   task_name: classification
   num_classes: 4
-  layers: [9840, 1024, 1024, 1024, 4]
   seq_len: 120
   pred_len: 0
   label_len: 0
-  d_model: 1024
+  reg: 10.0
   embed: timeF 
   freq: s
 
 train:
   epochs: 30
-  batch_size: 32
+  batch_size: 1
   patience: 10
-  lr: 0.0001
+  lr: 0.001
   lradj: type1
   weight_decay: 0.0
   log_every: 100
-  mixup: 0.4
-  bandwidth: 0.0
 
 log:
   project: fatigue
   group: classfication-ablation
-  tag: ablation-v7-mlp
+  tag: ablation-v7-svm
 
