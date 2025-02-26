@@ -1,4 +1,4 @@
-# Fatigue forecasting with transformers
+# Human performance forecasting with transformers
 
 
 ## Set up environment
