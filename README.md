@@ -1,4 +1,4 @@
-# Human performance forecasting with transformers
+# Human performance forecasting with SVAE + transformers
 
 
 ## Set up environment
@@ -17,7 +17,7 @@ Breakdown of the `docker run` command:
 - `-v [path to the top of this repo]:/workdir -v [path to data]:/data`: Mount the current dir to `/workdir`. Mount the data directory to `/data`.
 
 
-## Classification
+## Activity recognition
 ```bash
 python main.py tag=train-best task=classification
 ```
@@ -26,13 +26,13 @@ Evaluate classifier,
 python main.py tag=train-best task=classification test=True
 ```
 
-## Fatigue prediction
+## Fatigue assessment
 ```bash
 python main.py forecast=vae250-Biking tag=forecast-Biking-best forecast.model.d_layers=4 forecast.model.dropout=0.08101762186968295 forecast.train.bandwidth=1.1351408305181596 forecast.train.mixup=0.8996279310287609
 ```
 
 
-## Pretrain VAE on EMG & Pulse
+## Pretrain SVAE on EMG & Pulse
 ```bash
 bash scripts/encode.sh
 ```
